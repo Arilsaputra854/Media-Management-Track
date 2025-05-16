@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:media_management_track/auth/presentation/bloc/auth_bloc.dart';
-import 'package:media_management_track/auth/presentation/bloc/auth_event.dart';
-import 'package:media_management_track/auth/presentation/bloc/auth_state.dart';
 
 class RegisterPage extends StatelessWidget {
   const RegisterPage({super.key});
@@ -18,13 +14,10 @@ class RegisterPage extends StatelessWidget {
       String name = nameController.text;
       String password = passwordController.text;
 
-      context.read<AuthBloc>().add(RegisterRequested(email: email, password: password, name: name));
     }
 
     return Scaffold(
-      body: BlocConsumer<AuthBloc, AuthState>(
-        builder: (context, state) {
-          return Center(
+      body:  Center(
             child: Container(
               width: 500,
               height: 300,
@@ -48,9 +41,7 @@ class RegisterPage extends StatelessWidget {
                         obscureText: true,
                       ),
                       SizedBox(height: 20),
-                      state is AuthLoading
-                          ? CircularProgressIndicator()
-                          : ElevatedButton(
+                      ElevatedButton(
                             onPressed: () => _onRegisterPressed(context),
                             child: Text("Register"),
                           ),
@@ -59,21 +50,7 @@ class RegisterPage extends StatelessWidget {
                 ),
               ),
             ),
-          );
-        },
-        listener: (context, state) {
-           if(state is AuthRegisterSuccess){
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Registrasi telah berhasil, Silakan login."))              
-            );
-            Navigator.pop(context);
-          } else if (state is AuthFailure) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
-          }
-        },
-      ),
+          )
     );
   }
 }
