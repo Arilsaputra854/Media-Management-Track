@@ -1,33 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:media_management_track/view/dashboard_page.dart';
-import 'package:media_management_track/view/login_page.dart';
+import 'package:go_router/go_router.dart';
 
-class SplashScreenPage extends StatefulWidget {
-  @override
-  State<SplashScreenPage> createState() => _SplashScreenPageState();
-}
-
-class _SplashScreenPageState extends State<SplashScreenPage> {
-  @override
-  void initState() {
-    super.initState();
-    _checkLoginStatus();
-  }
-
-  Future<void> _checkLoginStatus() async {
-    await Future.delayed(Duration(seconds: 2));
-
-    var token;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => token != null ? DashboardPage() : LoginPage(),
-      ),
-    );
-  }
+class SplashScreenPage extends StatelessWidget {
+  const SplashScreenPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(seconds: 2), () async {
+        //String? token = await getToken();
+        // if (token != null) {
+        //   context.go('/dashboard');
+        // } else {
+        //   context.go('/login');
+        // }
+          context.go('/login');
+      });
+    });
+
     return const Scaffold(body: Center(child: Text("Logo")));
   }
 }
