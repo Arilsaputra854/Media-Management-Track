@@ -1,5 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:media_management_track/model/user.dart';
 import 'package:media_management_track/view/trainer_page.dart';
 

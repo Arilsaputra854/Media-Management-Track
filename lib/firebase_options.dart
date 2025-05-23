@@ -60,4 +60,5 @@ class DefaultFirebaseOptions {
     authDomain: 'learningmanagementsystem-26de7.firebaseapp.com',
     storageBucket: 'learningmanagementsystem-26de7.firebasestorage.app',
   );
+
 }
