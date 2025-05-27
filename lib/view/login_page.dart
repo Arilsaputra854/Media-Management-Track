@@ -18,11 +18,6 @@ class LoginPage extends StatelessWidget {
       context.go("/register");
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (vm.errorMsg != null) {
-        showToast(context, vm.errorMsg!);
-      }
-    });
     return Stack(
       children: [
         Scaffold(
@@ -51,11 +46,19 @@ class LoginPage extends StatelessWidget {
                         onTap: () => _onRegisterPressed(context),
                       ),
                       ElevatedButton(
-                        onPressed: () {
-                          vm.login(
+                        onPressed: () async {
+                          bool isSuccess = await vm.login(
                             emailController.text,
                             passwordController.text,
                           );
+
+                          if (isSuccess) {
+                            context.go('/dashboard');
+                          } else {
+                            if (vm.errorMsg != null) {
+                              showToast(context, vm.errorMsg!);
+                            }
+                          }
                         },
                         child: Text("Login"),
                       ),

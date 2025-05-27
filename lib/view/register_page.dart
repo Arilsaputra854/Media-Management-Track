@@ -16,90 +16,122 @@ class RegisterPage extends StatelessWidget {
     final TextEditingController emailController = TextEditingController();
     final TextEditingController passwordController = TextEditingController();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (vm.errorMsg != null) {
-        showToast(context, vm.errorMsg!);
-      }
-    });
+    String? currentInstitution;
 
     return Stack(
-      children: [ Scaffold(
-      body: Center(
-        child: Container(
-          width: 500,
-          height: 350,
-          child: Card(
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextFormField(
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Nama wajib diisi';
-                        }
-                      },
-                      controller: nameController,
-                      decoration: InputDecoration(labelText: "Nama"),
-                    ),
-                    TextFormField(
-                      controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Email wajib diisi';
-                        }
+      children: [
+        Scaffold(
+          body: Center(
+            child: Container(
+              width: 500,
+              height: 350,
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextFormField(
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Nama wajib diisi';
+                            }
+                          },
+                          controller: nameController,
+                          decoration: InputDecoration(labelText: "Nama"),
+                        ),
+                        TextFormField(
+                          controller: emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Email wajib diisi';
+                            }
 
-                        // Validasi dengan regex
-                        final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                        if (!emailRegex.hasMatch(value)) {
-                          return 'Format email tidak valid';
-                        }
+                            // Validasi dengan regex
+                            final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                            if (!emailRegex.hasMatch(value)) {
+                              return 'Format email tidak valid';
+                            }
 
-                        return null; // valid
-                      },
+                            return null; // valid
+                          },
 
-                      decoration: InputDecoration(labelText: "Email"),
+                          decoration: InputDecoration(labelText: "Email"),
+                        ),
+                        TextFormField(
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Password wajib diisi';
+                            }
+                          },
+                          controller: passwordController,
+                          keyboardType: TextInputType.visiblePassword,
+                          decoration: InputDecoration(labelText: "Password"),
+                          obscureText: true,
+                        ),
+                        FutureBuilder(
+                          future: vm.getInstitutions(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return CircularProgressIndicator();
+                            }
+                            return DropdownButtonFormField(
+                              items:
+                                  snapshot.data!.map((institution) {
+                                    return DropdownMenuItem(
+                                      child: Text(institution),
+                                      value: institution,
+                                    );
+                                  }).toList(),
+                              onChanged: (value) {
+                                currentInstitution = value;
+                              },
+                            );
+                          },
+                        ),
+                        SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () async {
+                            if (currentInstitution == null) {
+                              showToast(
+                                context,
+                                "Silakan pilih institusi asal kamu.",
+                              );
+                            }
+                            if (_formKey.currentState!.validate() &&
+                                currentInstitution != null) {
+                              bool isSuccess = await vm.register(
+                                email: emailController.text,
+                                password: passwordController.text,
+                                name: nameController.text,
+                                institution: currentInstitution!,
+                              );
+                              if (isSuccess) {
+                                showToast(context, "Berhasil membuat Akun.");
+                                context.go('/login');
+                              } else {
+                                if (vm.errorMsg != null) {
+                                  showToast(context, vm.errorMsg!);
+                                }
+                              }
+                            }
+                          },
+                          child: Text("Register"),
+                        ),
+                      ],
                     ),
-                    TextFormField(
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Password wajib diisi';
-                        }
-                      },
-                      controller: passwordController,
-                      keyboardType: TextInputType.visiblePassword,
-                      decoration: InputDecoration(labelText: "Password"),
-                      obscureText: true,
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (_formKey.currentState!.validate()) {
-                          bool isSuccess = await vm.register(
-                            email: emailController.text,
-                            password: passwordController.text,
-                            name: nameController.text,
-                          );
-                          if (isSuccess) {
-                            showToast(context, "Berhasil membuat Akun.");
-                            context.go('/login');
-                          }
-                        }
-                      },
-                      child: Text("Register"),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    ), if(vm.loading) LoadingWidget("Mohon Tunggu")],
+        if (vm.loading) LoadingWidget("Mohon Tunggu"),
+      ],
     );
   }
 }

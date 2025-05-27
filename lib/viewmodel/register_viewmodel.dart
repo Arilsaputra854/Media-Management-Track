@@ -15,6 +15,7 @@ class RegisterViewmodel extends ChangeNotifier {
     required String email,
     required String password,
     required String name,
+    required String institution,
   }) async {
     _errorMsg = null;
     _loading = true;
@@ -24,7 +25,7 @@ class RegisterViewmodel extends ChangeNotifier {
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
 
-      if (userCredential.credential != null) {
+      if (userCredential.user?.uid != null) {
         await FirebaseFirestore.instance
             .collection("users")
             .doc(userCredential.user!.uid)
@@ -32,6 +33,8 @@ class RegisterViewmodel extends ChangeNotifier {
               'uid': userCredential.user!.uid,
               'email': email,
               'name': name,
+              'role' : "trainer",
+              'institution' : institution,
               'createdAt': FieldValue.serverTimestamp(),
               'updateAt': FieldValue.serverTimestamp(),
             });
@@ -44,6 +47,7 @@ class RegisterViewmodel extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
+        _errorMsg = "Tidak dapat menyimpan data";
         _loading = false;
         notifyListeners();
         return false;
@@ -55,5 +59,16 @@ class RegisterViewmodel extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  Future<List<String>> getInstitutions() async{
+    QuerySnapshot snapshot =  await FirebaseFirestore.instance.collection("institutions").get();
+    List<String> tempList = [];
+
+    for (var doc in snapshot.docs) {
+      tempList.add(doc['name']);
+    }
+
+    return tempList;
   }
 }

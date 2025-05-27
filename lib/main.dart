@@ -6,6 +6,7 @@ import 'package:media_management_track/view/dashboard_page.dart';
 import 'package:media_management_track/view/login_page.dart';
 import 'package:media_management_track/view/register_page.dart';
 import 'package:media_management_track/view/splash_screen_page.dart';
+import 'package:media_management_track/viewmodel/dashboard_viewmodel.dart';
 import 'package:media_management_track/viewmodel/login_viewmodel.dart';
 import 'package:media_management_track/viewmodel/register_viewmodel.dart';
 import 'package:provider/provider.dart';
@@ -15,7 +16,7 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => LoginViewmodel()), ChangeNotifierProvider(create: (_)=> RegisterViewmodel())],
+      providers: [ChangeNotifierProvider(create: (context) => LoginViewmodel()), ChangeNotifierProvider(create: (_)=> RegisterViewmodel(),),ChangeNotifierProvider(create: (context)=> DashboardViewmodel(context),)],
       child: MyApp(),
     ),
   );
