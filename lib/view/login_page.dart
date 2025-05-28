@@ -1,23 +1,40 @@
+import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:media_management_track/model/user.dart';
 import 'package:media_management_track/view/widget/loading_widget.dart';
 import 'package:media_management_track/view/widget/toast_widget.dart';
 import 'package:media_management_track/viewmodel/login_viewmodel.dart';
 import 'package:provider/provider.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  late LoginViewmodel vm;
+
+  @override
+  void didChangeDependencies() {
+    auth.User? user = auth.FirebaseAuth.instance.currentUser;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (user != null) {
+        context.go('/dashboard');
+      }
+    });
+
+    vm = context.watch<LoginViewmodel>();
+    super.didChangeDependencies();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final TextEditingController emailController = TextEditingController();
-    final TextEditingController passwordController = TextEditingController();
-    LoginViewmodel vm = context.watch<LoginViewmodel>();
-
-    void _onRegisterPressed(BuildContext context) {
-      context.go("/register");
-    }
-
     return Stack(
       children: [
         Scaffold(
@@ -43,7 +60,9 @@ class LoginPage extends StatelessWidget {
                       SizedBox(height: 20),
                       InkWell(
                         child: Text("Daftar"),
-                        onTap: () => _onRegisterPressed(context),
+                        onTap: () {
+                          context.go("/register");
+                        },
                       ),
                       ElevatedButton(
                         onPressed: () async {

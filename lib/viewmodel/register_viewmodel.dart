@@ -33,12 +33,13 @@ class RegisterViewmodel extends ChangeNotifier {
               'uid': userCredential.user!.uid,
               'email': email,
               'name': name,
-              'role' : "trainer",
-              'institution' : institution,
+              'role': "trainer",
+              'institution': institution,
               'createdAt': FieldValue.serverTimestamp(),
               'updateAt': FieldValue.serverTimestamp(),
             });
 
+        await FirebaseAuth.instance.signOut();
         logger.d(
           "Create Account Successfully With Email ${userCredential.user!.email}",
         );
@@ -61,8 +62,9 @@ class RegisterViewmodel extends ChangeNotifier {
     }
   }
 
-  Future<List<String>> getInstitutions() async{
-    QuerySnapshot snapshot =  await FirebaseFirestore.instance.collection("institutions").get();
+  Future<List<String>> getInstitutions() async {
+    QuerySnapshot snapshot =
+        await FirebaseFirestore.instance.collection("institutions").get();
     List<String> tempList = [];
 
     for (var doc in snapshot.docs) {

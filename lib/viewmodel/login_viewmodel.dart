@@ -14,27 +14,39 @@ class LoginViewmodel extends ChangeNotifier {
   String? get errorMsg => _errorMsg;
   bool get loading => _loading;
 
-  Future<bool> login(String email, String password) async {
-    Prefs prefs = Prefs();
+  Prefs prefs;
 
+  LoginViewmodel(this.prefs);
+
+  Future<bool> login(String email, String password) async {
     _loading = true;
     _errorMsg = null;
     notifyListeners();
 
     try {
-      final userCrendential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final userCrendential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
       _loading = false;
 
-      // if(userCrendential.user != null){
-      //   final  docSnapshot = await FirebaseFirestore.instance.collection('user').doc(userCrendential.user!.uid).get();
-
-      //   final data = docSnapshot.data();
-
-      //   prefs.saveUser(User.fromJson(data!));
-      // }
+      if (userCrendential.user != null) {
+        final uid = userCrendential.user!.uid;
+        final docSnapshot =
+            await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        if (docSnapshot.exists) {
+          final data = docSnapshot.data();
+          if (data != null) {
+            prefs.saveUser(User.fromJson(data));
+          } else {
+            _errorMsg = "Data user di Firestore kosong.";
+            logger.e(_errorMsg);
+            return false;
+          }
+        } else {
+          _errorMsg = "Akun belum terdaftar di Firestore.";
+          logger.e(_errorMsg);
+          return false;
+        }
+      }
 
       logger.d("Login berhasil :${FirebaseAuth.instance.currentUser?.email}");
       notifyListeners();
