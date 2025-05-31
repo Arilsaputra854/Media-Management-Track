@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_management_track/model/user.dart';
+import 'package:media_management_track/view/borrow_media_page.dart';
+import 'package:media_management_track/view/history_borrow_page.dart';
 import 'package:media_management_track/view/media_page.dart';
 import 'package:media_management_track/view/trainer_page.dart';
 import 'package:media_management_track/viewmodel/dashboard_viewmodel.dart';
@@ -15,7 +17,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  Widget _selectedBody = TrainerPage();
+  Widget? _selectedBody;
 
   late DashboardViewmodel vm;
   @override
@@ -27,6 +29,14 @@ class _DashboardPageState extends State<DashboardPage> {
 
       if (auth.FirebaseAuth.instance.currentUser == null) {
         context.go('/login');
+      } else {
+        setState(() {
+          if (vm.currentUser?.role == 'admin') {
+            _selectedBody = TrainerPage();
+          } else if (vm.currentUser?.role == 'trainer') {
+            _selectedBody = BorrowMediaPage(); 
+          }
+        });
       }
     });
   }
@@ -35,6 +45,12 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     return Consumer<DashboardViewmodel>(
       builder: (context, vm, _) {
+        if (vm.currentUser == null) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
         return Scaffold(
           appBar: AppBar(title: const Text('Dashboard')),
           drawer: Drawer(
@@ -48,6 +64,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     style: TextStyle(color: Colors.white, fontSize: 24),
                   ),
                 ),
+
                 if (vm.currentUser?.role == "admin")
                   ListTile(
                     leading: const Icon(Icons.home),
@@ -82,6 +99,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   leading: const Icon(Icons.calendar_month),
                   title: const Text('History Peminjaman'),
                   onTap: () {
+                    setState(() {
+                      _selectedBody = HistoryBorrowPage();
+                    });
                     Navigator.pop(context);
                   },
                 ),
@@ -93,6 +113,13 @@ class _DashboardPageState extends State<DashboardPage> {
                       Navigator.pop(context);
                     },
                   ),
+                ListTile(
+                  leading: const Icon(Icons.school),
+                  title: const Text('Sekolah'),
+                  onTap: () {
+                    context.go('/');
+                  },
+                ),
                 ListTile(
                   leading: const Icon(Icons.logout),
                   title: const Text('Logout'),

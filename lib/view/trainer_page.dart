@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart'
     show FirebaseFirestore, QuerySnapshot;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:media_management_track/model/user.dart' show User;
 import 'package:media_management_track/viewmodel/trainer_viewmodel.dart';
 import 'package:provider/provider.dart';
@@ -66,6 +67,7 @@ class _TrainerPageState extends State<TrainerPage> {
                         ),
                         trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
                         onTap: () {
+                          context.go('/trainer', extra: user);
                         },
                       ),
                     );

@@ -18,7 +18,7 @@ class DashboardViewmodel extends ChangeNotifier {
   Future<void> init() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      _currentUser = await prefs.getUser();
+      _currentUser = prefs.getUser();
       notifyListeners();
     }
   }
