@@ -5,6 +5,7 @@ import 'package:media_management_track/model/user.dart';
 import 'package:media_management_track/view/borrow_media_page.dart';
 import 'package:media_management_track/view/history_borrow_page.dart';
 import 'package:media_management_track/view/media_page.dart';
+import 'package:media_management_track/view/school_page.dart';
 import 'package:media_management_track/view/trainer_page.dart';
 import 'package:media_management_track/viewmodel/dashboard_viewmodel.dart';
 import 'package:provider/provider.dart';
@@ -108,16 +109,29 @@ class _DashboardPageState extends State<DashboardPage> {
                 if (vm.currentUser?.role == "admin")
                   ListTile(
                     leading: const Icon(Icons.person),
-                    title: const Text('Permintaan'),
+                    title: const Text('Permintaan Peminjaman Media'),
                     onTap: () {
                       Navigator.pop(context);
                     },
                   ),
+                if (vm.currentUser?.role == "admin")
+                  ListTile(
+                    leading: const Icon(Icons.person),
+                    title: const Text('Permintaan Sebagai Trainer'),
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                if (vm.currentUser?.role == "admin")
                 ListTile(
                   leading: const Icon(Icons.school),
                   title: const Text('Sekolah'),
                   onTap: () {
-                    context.go('/');
+                    
+                    setState(() {
+                      _selectedBody = SchoolPage();
+                    });
+                      Navigator.pop(context);
                   },
                 ),
                 ListTile(

@@ -17,6 +17,7 @@ import 'package:media_management_track/viewmodel/history_viewmodel.dart';
 import 'package:media_management_track/viewmodel/login_viewmodel.dart';
 import 'package:media_management_track/viewmodel/media_viewmodel.dart';
 import 'package:media_management_track/viewmodel/register_viewmodel.dart';
+import 'package:media_management_track/viewmodel/school_viewmodel.dart';
 import 'package:media_management_track/viewmodel/trainer_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,6 +39,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => MediaViewmodel()),
         ChangeNotifierProvider(create: (_) => HistoryViewmodel()),
         ChangeNotifierProvider(create: (_) => BorrowMediaViewModel()),
+        ChangeNotifierProvider(create: (_) => SchoolViewmodel()),
       ],
       child: MyApp(),
     ),
@@ -51,6 +53,7 @@ final GoRouter _router = GoRouter(
     GoRoute(path: '/register', builder: (context, state) => RegisterPage()),
     GoRoute(path: '/login', builder: (context, state) => LoginPage()),
     GoRoute(path: '/borrow', builder: (context, state) => BorrowMediaPage()),
+    GoRoute(path: '/schools', builder: (context, state) => BorrowMediaPage()),
     GoRoute(
       path: '/trainer',
       builder: (context, state) {

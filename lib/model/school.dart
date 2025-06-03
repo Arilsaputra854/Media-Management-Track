@@ -1,6 +1,6 @@
 class School {
   String name;
-  String id;
+  String? id;
 
   School(this.name, this.id);
 }
