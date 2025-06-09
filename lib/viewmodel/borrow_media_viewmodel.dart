@@ -45,8 +45,7 @@ class BorrowMediaViewModel extends ChangeNotifier {
   }
 
   void removeBorrowed(Media media) {
-  borrowedItems.remove(media);
-  notifyListeners();
-}
-
+    borrowedItems.remove(media);
+    notifyListeners();
+  }
 }

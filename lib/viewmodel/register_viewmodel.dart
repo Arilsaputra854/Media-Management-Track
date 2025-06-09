@@ -34,6 +34,7 @@ class RegisterViewmodel extends ChangeNotifier {
               'email': email,
               'name': name,
               'role': "trainer",
+              'status': "requested",
               'institution': institution,
               'createdAt': FieldValue.serverTimestamp(),
               'updateAt': FieldValue.serverTimestamp(),

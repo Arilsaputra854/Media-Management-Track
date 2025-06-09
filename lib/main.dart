@@ -5,6 +5,7 @@ import 'package:media_management_track/firebase_options.dart';
 import 'package:media_management_track/model/user.dart';
 import 'package:media_management_track/storage/prefs.dart';
 import 'package:media_management_track/view/borrow_media_page.dart';
+import 'package:media_management_track/view/borrow_request_page.dart';
 import 'package:media_management_track/view/dashboard_page.dart';
 import 'package:media_management_track/view/history_borrow_page.dart';
 import 'package:media_management_track/view/login_page.dart';
@@ -12,6 +13,7 @@ import 'package:media_management_track/view/register_page.dart';
 import 'package:media_management_track/view/splash_screen_page.dart';
 import 'package:media_management_track/view/trainer_detail_page.dart';
 import 'package:media_management_track/viewmodel/borrow_media_viewmodel.dart';
+import 'package:media_management_track/viewmodel/borrow_request_viewmodel.dart';
 import 'package:media_management_track/viewmodel/dashboard_viewmodel.dart';
 import 'package:media_management_track/viewmodel/history_viewmodel.dart';
 import 'package:media_management_track/viewmodel/login_viewmodel.dart';
@@ -40,6 +42,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => HistoryViewmodel()),
         ChangeNotifierProvider(create: (_) => BorrowMediaViewModel()),
         ChangeNotifierProvider(create: (_) => SchoolViewmodel()),
+        ChangeNotifierProvider(create: (_) => BorrowRequestViewmodel()),
       ],
       child: MyApp(),
     ),
@@ -54,6 +57,8 @@ final GoRouter _router = GoRouter(
     GoRoute(path: '/login', builder: (context, state) => LoginPage()),
     GoRoute(path: '/borrow', builder: (context, state) => BorrowMediaPage()),
     GoRoute(path: '/schools', builder: (context, state) => BorrowMediaPage()),
+    GoRoute(path: '/request-become-trainer', builder: (context, state) => BorrowMediaPage()),
+    GoRoute(path: '/request-borrow-media', builder: (context, state) => BorrowRequestPage()),
     GoRoute(
       path: '/trainer',
       builder: (context, state) {

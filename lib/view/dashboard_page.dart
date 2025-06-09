@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_management_track/model/user.dart';
 import 'package:media_management_track/view/borrow_media_page.dart';
+import 'package:media_management_track/view/borrow_request_page.dart';
 import 'package:media_management_track/view/history_borrow_page.dart';
 import 'package:media_management_track/view/media_page.dart';
 import 'package:media_management_track/view/school_page.dart';
@@ -111,7 +112,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     leading: const Icon(Icons.person),
                     title: const Text('Permintaan Peminjaman Media'),
                     onTap: () {
-                      Navigator.pop(context);
+                      setState(() {
+                      _selectedBody = BorrowRequestPage();
+                    });
+                    Navigator.pop(context);
                     },
                   ),
                 if (vm.currentUser?.role == "admin")
