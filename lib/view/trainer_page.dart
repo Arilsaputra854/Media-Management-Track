@@ -28,7 +28,6 @@ class _TrainerPageState extends State<TrainerPage> {
     return Consumer<TrainerViewmodel>(
       builder: (context, vm, _) {
         return Scaffold(
-          appBar: AppBar(title: const Text("Kelola Trainer")),
           body: Stack(
             children: [
               vm.users.isEmpty

@@ -10,25 +10,24 @@ class RequestTrainerViewmodel extends ChangeNotifier {
   bool isLoading = false;
 
   Future<void> fetchRequestedUsers() async {
-    isLoading = true;
-    notifyListeners();
+  isLoading = true;
+  notifyListeners();
 
-    try {
-      final snapshot = await _firestore
-          .collection('users')
-          .where('status', isEqualTo: 'requested')
-          .get();
+  try {
+    final snapshot = await _firestore.collection('users').get();
 
-      requestedUsers = snapshot.docs
-          .map((doc) => User.fromJson(doc.id, doc.data())) //TODO
-          .toList();
-    } catch (e) {
-      print('Error fetchRequestedUsers: $e');
-    }
-
-    isLoading = false;
-    notifyListeners();
+    requestedUsers = snapshot.docs
+        .where((doc) => doc.data()['status'] != 'accepted')
+        .map((doc) => User.fromJson(doc.data(),id: doc.id))
+        .toList();
+  } catch (e) {
+    print('Error fetchRequestedUsers: $e');
   }
+
+  isLoading = false;
+  notifyListeners();
+}
+
 
   Future<void> acceptUser(String userId) async {
     try {

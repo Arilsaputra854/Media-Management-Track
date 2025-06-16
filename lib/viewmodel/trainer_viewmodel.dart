@@ -24,7 +24,7 @@ class TrainerViewmodel extends ChangeNotifier {
             return User.fromJson(doc.data() as Map<String, dynamic>);
           }).toList();
 
-      _users = usersSnapshot.where((user) => user.role == 'trainer').toList();
+      _users = usersSnapshot.where((user) => user.role == 'trainer' && user.status == 'accepted').toList();
       notifyListeners();
     } catch (e) {
       log.e(e.toString());

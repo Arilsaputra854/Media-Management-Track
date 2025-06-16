@@ -6,16 +6,28 @@ class MediaViewmodel extends ChangeNotifier{
   List<Media> _media = [];
   List<Media> get media => _media;
 
-  Future<void> fetchUsers() async {
+  Future<void> fetchMedia() async {
     QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('media_kit').get();
 
     List<Media> mediaKitsSnapshot = snapshot.docs.map((doc) {
-      return Media.fromJson(doc.data() as Map<String, dynamic>);
+      return Media.fromJson(doc.data() as Map<String, dynamic>, doc.id);
     }).toList();
+
 
     _media = mediaKitsSnapshot.toList();
     notifyListeners();
   }
 
+  Future<bool> addMedia(Media media) async {
+    try {
+      await FirebaseFirestore.instance.collection('media_kit').add(media.toJson());
 
+      await fetchMedia();
+      return true;
+    } catch (e) {
+      debugPrint('Error adding media: $e');
+      return false;
+    }
+
+  }
 }

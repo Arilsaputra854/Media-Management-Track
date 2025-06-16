@@ -1,11 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:media_management_track/model/user.dart';
 import 'package:media_management_track/view/borrow_media_page.dart';
 import 'package:media_management_track/view/borrow_request_page.dart';
 import 'package:media_management_track/view/history_borrow_page.dart';
 import 'package:media_management_track/view/media_page.dart';
+import 'package:media_management_track/view/request_trainer_page.dart';
 import 'package:media_management_track/view/school_page.dart';
 import 'package:media_management_track/view/trainer_page.dart';
 import 'package:media_management_track/viewmodel/dashboard_viewmodel.dart';
@@ -19,9 +19,8 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  Widget? _selectedBody;
-
   late DashboardViewmodel vm;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -31,14 +30,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
       if (auth.FirebaseAuth.instance.currentUser == null) {
         context.go('/login');
-      } else {
-        setState(() {
-          if (vm.currentUser?.role == 'admin') {
-            _selectedBody = TrainerPage();
-          } else if (vm.currentUser?.role == 'trainer') {
-            _selectedBody = BorrowMediaPage(); 
-          }
-        });
       }
     });
   }
@@ -54,27 +45,26 @@ class _DashboardPageState extends State<DashboardPage> {
         }
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Dashboard')),
+          appBar: AppBar(
+            title: Text(vm.pageTitle ?? 'Dashboard'),
+          ),
           drawer: Drawer(
             child: ListView(
               padding: EdgeInsets.zero,
               children: <Widget>[
                 DrawerHeader(
-                  decoration: BoxDecoration(color: Colors.blue),
+                  decoration: const BoxDecoration(color: Colors.blue),
                   child: Text(
                     'Selamat Datang, ${vm.currentUser?.name}',
-                    style: TextStyle(color: Colors.white, fontSize: 24),
+                    style: const TextStyle(color: Colors.white, fontSize: 24),
                   ),
                 ),
-
                 if (vm.currentUser?.role == "admin")
                   ListTile(
                     leading: const Icon(Icons.home),
                     title: const Text('Kelola Trainer'),
                     onTap: () {
-                      setState(() {
-                        _selectedBody = TrainerPage();
-                      });
+                      vm.updatePage(const TrainerPage(), "Kelola Trainer", "trainer");
                       Navigator.pop(context);
                     },
                   ),
@@ -83,9 +73,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     leading: const Icon(Icons.perm_media),
                     title: const Text('Kelola Media'),
                     onTap: () {
-                      setState(() {
-                        _selectedBody = MediaPage();
-                      });
+                      vm.updatePage(const MediaPage(), "Kelola Media", "media");
                       Navigator.pop(context);
                     },
                   ),
@@ -94,6 +82,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     leading: const Icon(Icons.perm_media),
                     title: const Text('Pinjam Media'),
                     onTap: () {
+                      vm.updatePage(const BorrowMediaPage(), "Pinjam Media", "borrowMedia");
                       Navigator.pop(context);
                     },
                   ),
@@ -101,9 +90,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   leading: const Icon(Icons.calendar_month),
                   title: const Text('History Peminjaman'),
                   onTap: () {
-                    setState(() {
-                      _selectedBody = HistoryBorrowPage();
-                    });
+                    vm.updatePage(
+                      HistoryBorrowPage(userRole: vm.currentUser?.role ?? ''),
+                      "Riwayat Peminjaman",
+                      "history",
+                    );
                     Navigator.pop(context);
                   },
                 ),
@@ -112,10 +103,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     leading: const Icon(Icons.person),
                     title: const Text('Permintaan Peminjaman Media'),
                     onTap: () {
-                      setState(() {
-                      _selectedBody = BorrowRequestPage();
-                    });
-                    Navigator.pop(context);
+                      vm.updatePage(const BorrowRequestPage(), "Permintaan Peminjaman", "borrowRequest");
+                      Navigator.pop(context);
                     },
                   ),
                 if (vm.currentUser?.role == "admin")
@@ -123,21 +112,19 @@ class _DashboardPageState extends State<DashboardPage> {
                     leading: const Icon(Icons.person),
                     title: const Text('Permintaan Sebagai Trainer'),
                     onTap: () {
+                      vm.updatePage(const RequestTrainerPage(), "Permintaan Trainer", "requestTrainer");
                       Navigator.pop(context);
                     },
                   ),
                 if (vm.currentUser?.role == "admin")
-                ListTile(
-                  leading: const Icon(Icons.school),
-                  title: const Text('Sekolah'),
-                  onTap: () {
-                    
-                    setState(() {
-                      _selectedBody = SchoolPage();
-                    });
+                  ListTile(
+                    leading: const Icon(Icons.school),
+                    title: const Text('Sekolah'),
+                    onTap: () {
+                      vm.updatePage(const SchoolPage(), "Kelola Sekolah", "school");
                       Navigator.pop(context);
-                  },
-                ),
+                    },
+                  ),
                 ListTile(
                   leading: const Icon(Icons.logout),
                   title: const Text('Logout'),
@@ -149,7 +136,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
           ),
-          body: _selectedBody,
+          body: vm.selectedPage ?? const Center(child: Text("Tidak ada halaman yang dipilih")),
         );
       },
     );

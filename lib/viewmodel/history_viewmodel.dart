@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/web.dart';
+import 'package:media_management_track/model/borrow_request.dart';
 import 'package:media_management_track/model/history.dart';
 
 class HistoryViewmodel extends ChangeNotifier {
@@ -14,72 +15,102 @@ class HistoryViewmodel extends ChangeNotifier {
 
   final firestore = FirebaseFirestore.instance;
 
-  Future<List<History>> getBorrowList() async {
-    _loading = true;
-    _errorMsg = null;
-    notifyListeners();
-
-    try {
-      final querySnapshot =
-          await firestore
-              .collection('history')
-              .where('status', isEqualTo: 'borrow')
-              .get();
-
-      final List<History> list =
-          querySnapshot.docs
-              .map((doc) => History.fromJson(doc.data()))
-              .toList();
-
-      _loading = false;
-      notifyListeners();
-      return list;
-    } catch (e) {
-      logger.e("Error getBorrowList: $e");
-      _errorMsg = e.toString();
-      _loading = false;
-      notifyListeners();
-      return [];
-    }
+  Stream<List<BorrowRequest>> streamRequestedList({String? id}) {
+    return firestore
+        .collection('borrow_requests')
+        .where('status', isEqualTo: 'requested')
+        .snapshots()
+        .map((snapshot) {
+          final result =
+              snapshot.docs
+                  .map((doc) => BorrowRequest.fromFirestore(doc))
+                  .toList();
+          logger.i(
+            'streamRequestedList → ${result.length} ditemukan tanpa filter',
+          );
+          return result;
+        });
   }
 
-  Future<List<History>> getReturnList() async {
+  Stream<List<History>> streamBorrowList({String? id}) {
+    Query query = firestore
+        .collection('history')
+        .where('status', isEqualTo: 'borrow');
+
+    if (id != null && id.isNotEmpty) {
+      query = query.where('user_id', isEqualTo: id);
+    }
+
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs
+          .map(
+            (doc) =>
+                History.fromJson(doc.data() as Map<String, dynamic>, doc.id),
+          )
+          .toList();
+    });
+  }
+
+  Stream<List<History>> streamReturnList({String? id}) {
+    Query query = firestore
+        .collection('history')
+        .where('status', isEqualTo: 'return');
+
+    if (id != null && id.isNotEmpty) {
+      query = query.where('user_id', isEqualTo: id);
+    }
+
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs
+          .map(
+            (doc) =>
+                History.fromJson(doc.data() as Map<String, dynamic>, doc.id),
+          )
+          .toList();
+    });
+  }
+
+  Future<bool> returnItem(String historyId) async {
     _loading = true;
     _errorMsg = null;
     notifyListeners();
 
     try {
-      final querySnapshot =
-          await firestore
-              .collection('history')
-              .where('status', isEqualTo: 'return')
-              .get();
-
-      final List<History> list =
-          querySnapshot.docs
-              .map((doc) => History.fromJson(doc.data()))
-              .toList();
+      await firestore.collection('history').doc(historyId).update({
+        'status': 'return',
+        'return_at': FieldValue.serverTimestamp(),
+      });
 
       _loading = false;
       notifyListeners();
-      return list;
+      return true;
     } catch (e) {
-      logger.e("Error getReturnList: $e");
+      logger.e("Error returnItem: $e");
       _errorMsg = e.toString();
       _loading = false;
       notifyListeners();
-      return [];
+      return false;
     }
   }
 
   Future<String> getUserName(String userId) async {
-  final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-  return doc.data()?['name'] ?? 'User Tidak Dikenal';
-}
+    final doc = await firestore.collection('users').doc(userId).get();
+    return doc.data()?['name'] ?? 'User Tidak Dikenal';
+  }
 
-Future<String> getSchoolName(String schoolId) async {
-  final doc = await FirebaseFirestore.instance.collection('school').doc(schoolId).get();
-  return doc.data()?['name'] ?? 'Sekolah Tidak Dikenal';
+  Future<String> getSchoolName(String schoolId) async {
+    final doc = await firestore.collection('school').doc(schoolId).get();
+    return doc.data()?['name'] ?? 'Sekolah Tidak Dikenal';
+  }
+
+  Future<String> getMediaName(String mediaId) async {
+  try {
+    final doc = await firestore.collection('media_kit').doc(mediaId).get();
+    return doc.data()?['name'] ?? 'Media Tidak Dikenal';
+  } catch (e) {
+    logger.e('Error getMediaName: $e');
+    return 'Media Tidak Dikenal';
+  }
 }
 
 }

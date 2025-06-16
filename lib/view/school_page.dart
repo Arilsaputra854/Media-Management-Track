@@ -30,7 +30,6 @@ class _SchoolPageState extends State<SchoolPage> {
             onPressed: () => _addSchoolDialog(),
             child: Icon(Icons.add),
           ),
-          appBar: AppBar(title: const Text('Sekolah')),
           body: Stack(
             children: [
               vm.schools.isEmpty

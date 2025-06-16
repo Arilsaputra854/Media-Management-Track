@@ -43,38 +43,98 @@ class BorrowRequestViewmodel extends ChangeNotifier {
     }
   }
 
-  void approveRequest(BorrowRequest request) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('borrow_requests')
-          .doc(request.id)
-          .update({'status': 'approved', 'accept_at': Timestamp.now()});
-      await FirebaseFirestore.instance
-          .collection('history')
-          .add({
-      'user_id': request.userId,
-      'school_id': request.schoolId,
-      'status': 'borrow',
-      'borrow_at': Timestamp.now(),
-      'return_at': null,
+  Stream<List<BorrowRequest>> get requestStream {
+    return _db.collection('borrow_requests').snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => BorrowRequest.fromFirestore(doc))
+          .toList();
     });
-
-      fetchRequests();
-    } catch (e) {
-      debugPrint('Error approving request: $e');
-    }
   }
 
-  void declineRequest(BorrowRequest request) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('borrow_requests')
-          .doc(request.id)
-          .update({'status': 'declined'});
+  Future<void> approveRequest(BorrowRequest request, BuildContext context) async {
+  final mediaRef = _db.collection('media_kit').doc(request.mediaId);
+  final requestRef = _db.collection('borrow_requests').doc(request.id);
 
-      fetchRequests();
+  try {
+    await _db.runTransaction((transaction) async {
+      final mediaSnap = await transaction.get(mediaRef);
+
+      if (!mediaSnap.exists) {
+        throw Exception('Media tidak ditemukan');
+      }
+
+      final data = mediaSnap.data();
+      final List<dynamic> items = data?['items'] ?? [];
+
+      // Hitung item dengan status ready
+      final readyItems = items.where((item) => item['status'] == 'ready').toList();
+
+      if (readyItems.length < request.pcs) {
+        throw Exception('Stok tidak mencukupi');
+      }
+
+      // Tandai sejumlah item sebagai borrowed
+      for (int i = 0; i < request.pcs; i++) {
+        readyItems[i]['status'] = 'borrow';
+        readyItems[i]['borrowed_at'] = Timestamp.now();
+        readyItems[i]['borrowed_by'] = request.userId;
+      }
+
+      // Update item di media
+      transaction.update(mediaRef, {'items': items});
+
+      // Update status permintaan
+      transaction.update(requestRef, {
+        'status': 'approved',
+        'accept_at': Timestamp.now(),
+      });
+
+      // Tambah ke history
+      final historyRef = _db.collection('history').doc();
+      transaction.set(historyRef, {
+        'user_id': request.userId,
+        'school_id': request.schoolId,
+        'media_id': request.mediaId,
+        'media_name': request.mediaName,
+        'pcs': request.pcs,
+        'status': 'borrow',
+        'borrow_at': Timestamp.now(),
+        'return_at': null,
+      });
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Permintaan disetujui.')),
+    );
+  } catch (e, stackTrace) {
+    debugPrint('❌ Error approving request: $e');
+    debugPrint('📄 StackTrace:\n$stackTrace');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Gagal menyetujui: ${e.toString()}')),
+    );
+  }
+}
+
+
+  /// Tolak permintaan peminjaman
+  Future<void> declineRequest(
+    BorrowRequest request,
+    BuildContext context,
+  ) async {
+    try {
+      await _db.collection('borrow_requests').doc(request.id).update({
+        'status': 'declined',
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Permintaan ditolak.')));
     } catch (e) {
       debugPrint('Error declining request: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal menolak: ${e.toString()}')));
     }
   }
 
@@ -93,6 +153,24 @@ class BorrowRequestViewmodel extends ChangeNotifier {
     } catch (e) {
       print('Error: $e');
       return 'Error mengambil user';
+    }
+  }
+
+  Future<String> getMediaNameById(String mediaId) async {
+    try {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('media_kit')
+              .doc(mediaId)
+              .get();
+      if (doc.exists) {
+        return doc.data()?['name'] ?? 'Tidak diketahui';
+      } else {
+        return 'Media tidak ditemukan';
+      }
+    } catch (e) {
+      debugPrint('Error: $e');
+      return 'Error mengambil media';
     }
   }
 }

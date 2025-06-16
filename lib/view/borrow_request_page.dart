@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:media_management_track/model/borrow_request.dart';
 import 'package:provider/provider.dart';
 import 'package:media_management_track/viewmodel/borrow_request_viewmodel.dart';
 
@@ -27,7 +28,6 @@ class _BorrowRequestPageState extends State<BorrowRequestPage> {
           length: 3,
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('Permintaan Peminjaman'),
               bottom: const TabBar(
                 tabs: [
                   Tab(text: 'Menunggu'),
@@ -36,16 +36,15 @@ class _BorrowRequestPageState extends State<BorrowRequestPage> {
                 ],
               ),
             ),
-            body:
-                vm.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : TabBarView(
-                      children: [
-                        _buildRequestList(vm, 'requested'),
-                        _buildRequestList(vm, 'approved'),
-                        _buildRequestList(vm, 'declined'),
-                      ],
-                    ),
+            body: vm.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : TabBarView(
+                    children: [
+                      _buildRequestList(vm, 'requested'),
+                      _buildRequestList(vm, 'approved'),
+                      _buildRequestList(vm, 'declined'),
+                    ],
+                  ),
           ),
         );
       },
@@ -53,85 +52,111 @@ class _BorrowRequestPageState extends State<BorrowRequestPage> {
   }
 
   Widget _buildRequestList(BorrowRequestViewmodel vm, String status) {
-    final filteredRequests =
-        vm.requests.where((req) => req.status == status).toList();
+    return StreamBuilder<List<BorrowRequest>>(
+      stream: vm.requestStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    if (filteredRequests.isEmpty) {
-      return const Center(child: Text("Tidak ada data."));
-    }
+        if (snapshot.hasError) {
+          return const Center(child: Text("Terjadi kesalahan."));
+        }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: filteredRequests.length,
-      itemBuilder: (context, index) {
-        final req = filteredRequests[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 2,
-          child: ListTile(
-            title: Text(req.mediaName),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        final filteredRequests =
+            snapshot.data!.where((req) => req.status == status).toList();
+
+        if (filteredRequests.isEmpty) {
+          return const Center(child: Text("Tidak ada data."));
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: filteredRequests.length,
+          itemBuilder: (context, index) {
+            final req = filteredRequests[index];
+
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoRow("Nama", vm.getUserNameById(req.userId)),
+                    _buildInfoRow("Media", vm.getMediaNameById(req.mediaId)),
+                    const SizedBox(height: 4),
+                    Text("Jumlah pcs: ${req.pcs}"),
+                    _buildInfoRow("Sekolah", vm.getSchoolNameById(req.schoolId)),
+                    const SizedBox(height: 4),
+                    Text("Status: ${req.status}", style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text("Tanggal permintaan: ${_formatDateTime(req.requestAt)}"),
+                    Text("Tanggal disetujui: ${req.acceptAt != null ? _formatDateTime(req.acceptAt!) : '-'}"),
+                    const SizedBox(height: 12),
+                    if (status == 'requested')
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.check),
+                            label: const Text("Setujui"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () => vm.approveRequest(req, context),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.close),
+                            label: const Text("Tolak"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () => vm.declineRequest(req, context),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Widget untuk menampilkan baris informasi dengan FutureBuilder
+  Widget _buildInfoRow(String label, Future<String> future) {
+    return FutureBuilder<String>(
+      future: future,
+      builder: (context, snapshot) {
+        String text = "Memuat...";
+        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+          text = snapshot.data!;
+        } else if (snapshot.hasError) {
+          text = "Gagal mengambil data";
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: RichText(
+            text: TextSpan(
+              text: "$label: ",
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
               children: [
-                Text("ID Media: ${req.mediaId}"),
-                FutureBuilder<String>(
-                  future: vm.getUserNameById(req.userId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Text("Memuat nama...");
-                    }
-                    if (snapshot.hasError) {
-                      return const Text("Gagal ambil nama");
-                    }
-                    return Text("Nama: ${snapshot.data}");
-                  },
-                ),
-
-                FutureBuilder<String>(
-                  future: vm.getSchoolNameById(req.schoolId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Text("Memuat sekolah...");
-                    }
-                    if (snapshot.hasError) {
-                      return const Text("Gagal ambil sekolah");
-                    }
-                    return Text("Sekolah: ${snapshot.data}");
-                  },
-                ),
-                Text("Status: ${req.status}"),
-                Text("Tanggal: ${_formatDateTime(req.requestAt)}"),
-                Text(
-                  "Tanggal disetujui : ${req.acceptAt != null ? _formatDateTime(req.acceptAt!) : '-'}",
+                TextSpan(
+                  text: text,
+                  style: const TextStyle(fontWeight: FontWeight.normal),
                 ),
               ],
             ),
-            trailing:
-                status == 'requested'
-                    ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                          ),
-                          onPressed: () {
-                            vm.approveRequest(req);
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.cancel, color: Colors.red),
-                          onPressed: () {
-                            vm.declineRequest(req);
-                          },
-                        ),
-                      ],
-                    )
-                    : null,
           ),
         );
       },
@@ -140,7 +165,9 @@ class _BorrowRequestPageState extends State<BorrowRequestPage> {
 
   String? _formatDateTime(DateTime? dt) {
     if (dt != null) {
-      return "${dt.day.toString().padLeft(2, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+      return "${dt.day.toString().padLeft(2, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.year} "
+          "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
     }
+    return null;
   }
 }

@@ -15,7 +15,7 @@ class User {
     required this.status,
   });
 
-  factory User.fromJson(Map<String, dynamic> json, {String? id}) {
+  factory User.fromJson(Map<String, dynamic> json,{String? id}) {
     return User(
       id: id ?? '',
       email: json['email'] ?? '',

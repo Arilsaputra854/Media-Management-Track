@@ -23,80 +23,72 @@ String mediaStatusToString(MediaStatus status) {
 }
 
 class Media {
+  final String? id; 
   final String name;
-  final int count;
-  final int countAll;
   final DateTime createdAt;
-  final MediaStatus status;
-  final String imageUrl;
-  final Map<String, dynamic> items;
+  final List<MediaItem> items;
 
-  Media({
+  Media({this.id, 
     required this.name,
-    required this.count,
-    required this.countAll,
     required this.createdAt,
-    required this.status,
-    required this.imageUrl,
-    this.items = const {}
+    required this.items,
   });
 
-  factory Media.fromJson(Map<String, dynamic> json) {
+  factory Media.fromJson(Map<String, dynamic> json,String documentId) {
+    final List<dynamic> itemsJson = json['items'] ?? [];
+
     return Media(
+      id: documentId, 
       name: json['name'] ?? '',
-      count: json['count'] ?? 0,
-      countAll: json['count_all'] ?? 0,
-      imageUrl: json['image_url'],
       createdAt: (json['create_at'] as Timestamp).toDate(),
-      status: mediaStatusFromString(json['status'] ?? 'ready'),
+      items: itemsJson.map((itemJson) => MediaItem.fromJson(itemJson)).toList(),
     );
   }
-
   Map<String, dynamic> toJson() {
     return {
       'name': name,
-      'count': count,
-      'count_all': countAll,
-      'image_url' : imageUrl,
-      'create_at': Timestamp.fromDate(createdAt),
-      'status': mediaStatusToString(status),
+      'create_at': Timestamp.fromDate(createdAt), // Convert DateTime to Timestamp
+      // Convert list of MediaItem objects to a list of maps
+      'items': items.map((item) => item.toJson()).toList(),
     };
   }
+
 }
 
 
 class MediaItem {
   final String id;
-  final MediaStatus status;
-  final String? borrowedBy;
   final DateTime? borrowedAt;
+  final String? borrowedBy;
   final DateTime? returnedAt;
+  final MediaStatus status;
 
   MediaItem({
     required this.id,
-    required this.status,
-    this.borrowedBy,
     this.borrowedAt,
+    this.borrowedBy,
     this.returnedAt,
+    required this.status,
   });
-
-  factory MediaItem.fromJson(String id, Map<String, dynamic> json) {
-    return MediaItem(
-      id: json['id'],
-      status: mediaStatusFromString(json['status']),
-      borrowedBy: json['borrowed_by'],
-      borrowedAt: (json['borrowed_at'] as Timestamp?)?.toDate(),
-      returnedAt: (json['returned_at'] as Timestamp?)?.toDate(),
-    );
-  }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'status': mediaStatusToString(status),
-      'borrowed_by': borrowedBy,
       'borrowed_at': borrowedAt != null ? Timestamp.fromDate(borrowedAt!) : null,
+      'borrowed_by': borrowedBy,
       'returned_at': returnedAt != null ? Timestamp.fromDate(returnedAt!) : null,
+      // Use the helper function to convert the enum to a string
+      'status': mediaStatusToString(status),
     };
+  }
+
+  factory MediaItem.fromJson(Map<String, dynamic> json) {
+    return MediaItem(
+      id: json['id'],
+      borrowedAt: (json['borrowed_at'] as Timestamp?)?.toDate(),
+      borrowedBy: json['borrowed_by'],
+      returnedAt: (json['returned_at'] as Timestamp?)?.toDate(),
+      status: mediaStatusFromString(json['status']),
+    );
   }
 }

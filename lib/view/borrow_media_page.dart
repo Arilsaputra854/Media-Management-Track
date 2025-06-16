@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../viewmodel/borrow_media_viewmodel.dart';
 import '../model/media.dart';
@@ -12,8 +14,13 @@ class BorrowMediaPage extends StatefulWidget {
 }
 
 class _BorrowMediaPageState extends State<BorrowMediaPage> {
+  final userId = FirebaseAuth.instance.currentUser?.uid;
+
   @override
   void initState() {
+    if (userId == null) {
+      context.go('/login');
+    }
     super.initState();
     final vm = context.read<BorrowMediaViewModel>();
     vm.init();
@@ -21,6 +28,7 @@ class _BorrowMediaPageState extends State<BorrowMediaPage> {
 
   void _showBorrowDialog(BuildContext context, Media media, int maxCount) {
     final controller = TextEditingController();
+
     showDialog(
       context: context,
       builder:
@@ -39,19 +47,18 @@ class _BorrowMediaPageState extends State<BorrowMediaPage> {
               ElevatedButton(
                 onPressed: () {
                   final count = int.tryParse(controller.text) ?? 0;
-                  if (count <= 0 || count > media.count) {
+                  if (count <= 0 || count > maxCount) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Jumlah tidak valid')),
                     );
                     return;
                   }
-                  context.read<BorrowMediaViewModel>().setBorrowed(
-                    media,
-                    count,
-                  );
+
+                  final vm = context.read<BorrowMediaViewModel>();
+                  vm.setBorrowed(media, count);
                   Navigator.pop(context);
                 },
-                child: const Text('Konfirmasi'),
+                child: const Text('Tambah'),
               ),
             ],
           ),
@@ -67,7 +74,6 @@ class _BorrowMediaPageState extends State<BorrowMediaPage> {
         }
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Pinjam Media')),
           body: Column(
             children: [
               Padding(
@@ -90,7 +96,7 @@ class _BorrowMediaPageState extends State<BorrowMediaPage> {
                   itemCount: vm.medias.length,
                   itemBuilder: (context, index) {
                     final media = vm.medias[index];
-                    final available = media.count;
+                    final available = media.items.length;
 
                     return Card(
                       margin: const EdgeInsets.symmetric(
@@ -98,12 +104,12 @@ class _BorrowMediaPageState extends State<BorrowMediaPage> {
                         vertical: 8,
                       ),
                       child: ListTile(
-                        leading: Image.network(
-                          media.imageUrl,
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
-                        ),
+                        // leading: Image.network(
+                        //   media.imageUrl,
+                        //   width: 50,
+                        //   height: 50,
+                        //   fit: BoxFit.cover,
+                        // ),
                         title: Text(media.name),
                         subtitle: Text('Tersedia: $available pcs'),
                         trailing:
@@ -171,13 +177,29 @@ class _BorrowMediaPageState extends State<BorrowMediaPage> {
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      // lanjut ke konfirmasi halaman atau simpan ke Firestore
-                      print("Borrowing from: ${vm.selectedSchool?.name}");
-                      vm.borrowedItems.forEach((media, count) {
-                        print("📦 ${media.name}: $count pcs");
-                      });
+                    onPressed: () async {
+                      final userId = FirebaseAuth.instance.currentUser?.uid;
+                      if (userId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("User belum login")),
+                        );
+                        return;
+                      }
+
+                      try {
+                        await vm.submitBorrowRequests(userId);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Permintaan berhasil dikirim!"),
+                          ),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Gagal mengirim: $e")),
+                        );
+                      }
                     },
+
                     icon: const Icon(Icons.check),
                     label: const Text('Konfirmasi Pinjam'),
                   ),
