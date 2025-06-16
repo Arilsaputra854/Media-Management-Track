@@ -15,15 +15,19 @@ class BorrowMediaPage extends StatefulWidget {
 
 class _BorrowMediaPageState extends State<BorrowMediaPage> {
   final userId = FirebaseAuth.instance.currentUser?.uid;
+  late BorrowMediaViewModel vm;
 
   @override
   void initState() {
+    super.initState();
+    vm = context.read<BorrowMediaViewModel>();
+    vm.init();
+    final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
       context.go('/login');
+    } else {
+      vm.checkHasActiveBorrow(userId);
     }
-    super.initState();
-    final vm = context.read<BorrowMediaViewModel>();
-    vm.init();
   }
 
   void _showBorrowDialog(BuildContext context, Media media, int maxCount) {
@@ -76,6 +80,20 @@ class _BorrowMediaPageState extends State<BorrowMediaPage> {
         return Scaffold(
           body: Column(
             children: [
+              if (vm.hasActiveBorrow)
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    border: Border.all(color: Colors.orange),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Kamu masih punya permintaan atau pinjaman yang belum selesai. Harap selesaikan dulu sebelum meminjam lagi.',
+                    style: TextStyle(color: Colors.orange),
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: DropdownButtonFormField<School>(
@@ -104,25 +122,30 @@ class _BorrowMediaPageState extends State<BorrowMediaPage> {
                         vertical: 8,
                       ),
                       child: ListTile(
-                        // leading: Image.network(
-                        //   media.imageUrl,
-                        //   width: 50,
-                        //   height: 50,
-                        //   fit: BoxFit.cover,
-                        // ),
                         title: Text(media.name),
                         subtitle: Text('Tersedia: $available pcs'),
                         trailing:
                             available > 0
-                                ? ElevatedButton(
-                                  onPressed:
-                                      () => _showBorrowDialog(
-                                        context,
-                                        media,
-                                        available,
-                                      ),
-                                  child: const Text('Pinjam'),
-                                )
+                                ? vm.hasActiveBorrow
+                                    ? const Text(
+                                      'Masih ada pinjaman aktif',
+                                      style: TextStyle(color: Colors.orange),
+                                    )
+                                    : ElevatedButton(
+  onPressed: () async {
+    final allowed = await vm.checkHasActiveBorrow(userId!);
+    if (!allowed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Masih ada pinjaman aktif!")),
+      );
+      return;
+    }
+
+    _showBorrowDialog(context, media, available);
+  },
+  child: const Text('Pinjam'),
+)
+
                                 : const Text(
                                   'Tidak Tersedia',
                                   style: TextStyle(color: Colors.grey),
@@ -177,28 +200,36 @@ class _BorrowMediaPageState extends State<BorrowMediaPage> {
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final userId = FirebaseAuth.instance.currentUser?.uid;
-                      if (userId == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("User belum login")),
-                        );
-                        return;
-                      }
+                    onPressed:
+                        vm.hasActiveBorrow
+                            ? null
+                            : () async {
+                              final userId =
+                                  FirebaseAuth.instance.currentUser?.uid;
+                              if (userId == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("User belum login"),
+                                  ),
+                                );
+                                return;
+                              }
 
-                      try {
-                        await vm.submitBorrowRequests(userId);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Permintaan berhasil dikirim!"),
-                          ),
-                        );
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Gagal mengirim: $e")),
-                        );
-                      }
-                    },
+                              try {
+                                await vm.submitBorrowRequests(userId);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Permintaan berhasil dikirim!",
+                                    ),
+                                  ),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Gagal mengirim: $e")),
+                                );
+                              }
+                            },
 
                     icon: const Icon(Icons.check),
                     label: const Text('Konfirmasi Pinjam'),

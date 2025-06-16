@@ -17,7 +17,10 @@ class _BorrowRequestPageState extends State<BorrowRequestPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     vm = Provider.of<BorrowRequestViewmodel>(context, listen: false);
-    vm.fetchRequests();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+    Provider.of<BorrowRequestViewmodel>(context, listen: false).fetchRequests();
+  });
+
   }
 
   @override

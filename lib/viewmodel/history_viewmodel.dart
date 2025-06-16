@@ -15,6 +15,16 @@ class HistoryViewmodel extends ChangeNotifier {
 
   final firestore = FirebaseFirestore.instance;
 
+  Future<bool> cancelRequest(String requestId) async {
+  try {
+    await firestore.collection('borrow_requests').doc(requestId).delete();
+    return true;
+  } catch (e) {
+    _errorMsg = e.toString();
+    return false;
+  }
+}
+
   Stream<List<BorrowRequest>> streamRequestedList({String? id}) {
     return firestore
         .collection('borrow_requests')
@@ -32,24 +42,27 @@ class HistoryViewmodel extends ChangeNotifier {
         });
   }
 
-  Stream<List<History>> streamBorrowList({String? id}) {
-    Query query = firestore
+  Stream<List<History>> streamBorrowList({required String? id, String? userRole}) {
+  if (userRole == 'admin') {
+    return firestore
         .collection('history')
-        .where('status', isEqualTo: 'borrow');
-
-    if (id != null && id.isNotEmpty) {
-      query = query.where('user_id', isEqualTo: id);
-    }
-
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs
-          .map(
-            (doc) =>
-                History.fromJson(doc.data() as Map<String, dynamic>, doc.id),
-          )
-          .toList();
-    });
+        .where('status', isEqualTo: 'borrow')
+        .orderBy('borrow_at', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => History.fromFirestore(doc)).toList());
+  } else {
+    return firestore
+        .collection('history')
+        .where('user_id', isEqualTo: id)
+        .where('status', isEqualTo: 'borrow')
+        .orderBy('borrow_at', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => History.fromFirestore(doc)).toList());
   }
+}
+
 
   Stream<List<History>> streamReturnList({String? id}) {
     Query query = firestore
@@ -64,7 +77,7 @@ class HistoryViewmodel extends ChangeNotifier {
       return snapshot.docs
           .map(
             (doc) =>
-                History.fromJson(doc.data() as Map<String, dynamic>, doc.id),
+                History.fromFirestore(doc),
           )
           .toList();
     });

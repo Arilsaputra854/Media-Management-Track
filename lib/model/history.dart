@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
+import 'package:cloud_firestore/cloud_firestore.dart' show DocumentSnapshot, Timestamp;
 
 class History {
   final String id;
   final String userId;
   final String schoolId;
-  final String mediaId; // ✅ DITAMBAHKAN
-  final String pcs;
+  final String mediaId;
+  final int pcs;
   final DateTime borrowAt;
   final DateTime? returnAt;
   final String status;
@@ -21,20 +21,23 @@ class History {
     required this.status,
   });
 
-  factory History.fromJson(Map<String, dynamic> json, String id) {
-    return History(
-      id: id,
-      userId: json['user_id'] ?? '',
-      schoolId: json['school_id'] ?? '',
-      mediaId: json['media_id'] ?? '', // ✅ DITAMBAHKAN
-      pcs: json['pcs'] ?? '',
-      borrowAt: (json['borrow_at'] as Timestamp).toDate(),
-      returnAt: json['return_at'] != null
-          ? (json['return_at'] as Timestamp).toDate()
-          : null,
-      status: json['status'] ?? 'borrow',
-    );
-  }
+  factory History.fromFirestore(DocumentSnapshot doc) {
+  final data = doc.data() as Map<String, dynamic>;
+  return History(
+    id: doc.id,
+    userId: data['user_id'] ?? '',
+    schoolId: data['school_id'] ?? '',
+    mediaId: data['media_id'] ?? '',
+    pcs: data['pcs'] is int ? data['pcs'] : int.tryParse(data['pcs'].toString()) ?? 0,
+    borrowAt: (data['borrow_at'] as Timestamp).toDate(),
+    returnAt: data['return_at'] != null
+        ? (data['return_at'] as Timestamp).toDate()
+        : null,
+    status: data['status'] ?? 'borrow',
+  );
+}
+
+
 
   Map<String, dynamic> toJson() {
     return {

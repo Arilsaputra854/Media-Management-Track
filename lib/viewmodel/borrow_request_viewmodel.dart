@@ -50,71 +50,78 @@ class BorrowRequestViewmodel extends ChangeNotifier {
           .toList();
     });
   }
-
-  Future<void> approveRequest(BorrowRequest request, BuildContext context) async {
+Future<void> approveRequest(BorrowRequest request, BuildContext context) async {
   final mediaRef = _db.collection('media_kit').doc(request.mediaId);
   final requestRef = _db.collection('borrow_requests').doc(request.id);
+  final historyRef = _db.collection('history').doc(); // buat dokumen history
+  final now = Timestamp.now();
 
   try {
     await _db.runTransaction((transaction) async {
+      // 1. Ambil data media_kit
       final mediaSnap = await transaction.get(mediaRef);
-
       if (!mediaSnap.exists) {
         throw Exception('Media tidak ditemukan');
       }
 
-      final data = mediaSnap.data();
-      final List<dynamic> items = data?['items'] ?? [];
+      final mediaData = mediaSnap.data()!;
+      final List<dynamic> items = List.from(mediaData['items'] ?? []);
 
-      // Hitung item dengan status ready
+      // 2. Filter item yang ready
       final readyItems = items.where((item) => item['status'] == 'ready').toList();
-
       if (readyItems.length < request.pcs) {
-        throw Exception('Stok tidak mencukupi');
+        throw Exception('Stok tidak cukup (${readyItems.length}/${request.pcs})');
       }
 
-      // Tandai sejumlah item sebagai borrowed
+      // 3. Tandai sebagai dipinjam
       for (int i = 0; i < request.pcs; i++) {
-        readyItems[i]['status'] = 'borrow';
-        readyItems[i]['borrowed_at'] = Timestamp.now();
-        readyItems[i]['borrowed_by'] = request.userId;
+        final indexInOriginal = items.indexOf(readyItems[i]);
+        items[indexInOriginal]['status'] = 'borrow';
+        items[indexInOriginal]['borrowed_at'] = now;
+        items[indexInOriginal]['borrowed_by'] = request.userId;
       }
 
-      // Update item di media
+      // 4. Update media_kit.items
       transaction.update(mediaRef, {'items': items});
 
-      // Update status permintaan
+      // 5. Update status borrow_requests
       transaction.update(requestRef, {
         'status': 'approved',
-        'accept_at': Timestamp.now(),
+        'accept_at': now,
       });
 
-      // Tambah ke history
-      final historyRef = _db.collection('history').doc();
+      // 6. Tambahkan history
       transaction.set(historyRef, {
         'user_id': request.userId,
         'school_id': request.schoolId,
         'media_id': request.mediaId,
-        'media_name': request.mediaName,
+        'media_name': request.mediaName ?? 'Tanpa Nama',
         'pcs': request.pcs,
         'status': 'borrow',
-        'borrow_at': Timestamp.now(),
+        'borrow_at': now,
         'return_at': null,
       });
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Permintaan disetujui.')),
-    );
-  } catch (e, stackTrace) {
-    debugPrint('❌ Error approving request: $e');
-    debugPrint('📄 StackTrace:\n$stackTrace');
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permintaan disetujui dan dicatat.')),
+      );
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Gagal menyetujui: ${e.toString()}')),
-    );
+  } catch (e, s) {
+    debugPrint('❌ Transaction Error: $e');
+    debugPrint('📄 StackTrace:\n$s');
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyetujui: ${e.runtimeType}: $e')),
+      );
+    }
   }
 }
+
+
+
 
 
   /// Tolak permintaan peminjaman

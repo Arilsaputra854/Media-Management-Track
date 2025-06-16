@@ -76,6 +76,8 @@ class DashboardViewmodel extends ChangeNotifier {
   }
 
   void logout() async {
+    await auth.FirebaseAuth.instance.signOut();
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     currentUser = null;

@@ -17,7 +17,9 @@ class HistoryBorrowPage extends StatefulWidget {
 
 class _HistoryBorrowPageState extends State<HistoryBorrowPage>
     with TickerProviderStateMixin {
-  late TabController _tabController;
+      late TabController _tabController;
+late int _tabLength;
+
   late HistoryViewmodel vm;
 
   @override
@@ -28,7 +30,9 @@ class _HistoryBorrowPageState extends State<HistoryBorrowPage>
       context.go('/login');
     }
 
-    _tabController = TabController(length: 3, vsync: this);
+    _tabLength = widget.userRole == 'admin' ? 2 : 3;
+  _tabController = TabController(length: _tabLength, vsync: this);
+
   }
 
   @override
@@ -128,86 +132,80 @@ class _HistoryBorrowPageState extends State<HistoryBorrowPage>
   }
 
   Widget buildRequestBorrowItem(
-  BorrowRequest history,
-  String userRole,
-  HistoryViewmodel viewModel,
-) {
-  return FutureBuilder<Map<String, String>>(
-    future: getNames(history.userId, history.schoolId),
-    builder: (context, snapshot) {
-      if (!snapshot.hasData) {
-        return const Center(child: CircularProgressIndicator());
-      }
+    BorrowRequest history,
+    String userRole,
+    HistoryViewmodel viewModel,
+  ) {
+    return FutureBuilder<Map<String, String>>(
+      future: getNames(history.userId, history.schoolId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-      final names = snapshot.data!;
-      final userName = names['user']!;
-      final schoolName = names['school']!;
-      final accAt = history.acceptAt != null
-          ? history.acceptAt!.toLocal().toString()
-          : "-";
+        final names = snapshot.data!;
+        final userName = names['user']!;
+        final schoolName = names['school']!;
+        final accAt =
+            history.acceptAt != null
+                ? history.acceptAt!.toLocal().toString()
+                : "-";
 
-      return FutureBuilder<String>(
-        future: viewModel.getMediaName(history.mediaId),
-        builder: (context, mediaSnapshot) {
-          if (!mediaSnapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+        return FutureBuilder<String>(
+          future: viewModel.getMediaName(history.mediaId),
+          builder: (context, mediaSnapshot) {
+            if (!mediaSnapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final mediaName = mediaSnapshot.data!;
+            final mediaName = mediaSnapshot.data!;
 
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: ListTile(
-              title: Text(
-                userName,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              child: ListTile(
+                title: Text(
+                  userName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Sekolah: $schoolName"),
+                    Text("Jam diminta: ${history.requestAt.toLocal()}"),
+                    Text("Jumlah pcs: ${history.pcs}"),
+                    Text("Nama Set: $mediaName"),
+                    Text("Di-ACC pada: $accAt"),
+                  ],
+                ),
+                trailing:
+                    (userRole == 'trainer' && history.status == 'requested')
+                        ? ElevatedButton(
+                          onPressed: () async {
+                            bool success = await viewModel.cancelRequest(
+                              history.id,
+                            );
+                            if (!mounted) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  success
+                                      ? 'Permintaan berhasil dibatalkan'
+                                      : 'Gagal membatalkan permintaan: ${viewModel.errorMsg}',
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('Batal'),
+                        )
+                        : null,
               ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Sekolah: $schoolName"),
-                  Text("Jam diminta: ${history.requestAt.toLocal()}"),
-                  Text("Jumlah pcs: ${history.pcs}"),
-                  Text("Nama Set: $mediaName"),
-                  Text("Di-ACC pada: $accAt"),
-                ],
-              ),
-              trailing: (userRole == 'trainer' && history.status == 'borrow')
-                  ? ElevatedButton(
-                      onPressed: () async {
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (_) => const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-
-                        bool success = await viewModel.returnItem(history.id);
-
-                        Navigator.of(context).pop();
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              success
-                                  ? 'Item berhasil dikembalikan'
-                                  : 'Gagal mengembalikan item: ${viewModel.errorMsg}',
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text('Kembalikan'),
-                    )
-                  : null,
-            ),
-          );
-        },
-      );
-    },
-  );
-}
-
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -217,39 +215,22 @@ class _HistoryBorrowPageState extends State<HistoryBorrowPage>
         appBar: AppBar(
           bottom: TabBar(
             controller: _tabController,
-            tabs: const [
-              Tab(text: "Diminta"),
-              Tab(text: "Dipinjam"),
-              Tab(text: "Dikembalikan"),
-            ],
+            tabs: widget.userRole == 'admin'
+        ? const [
+            Tab(text: "Dipinjam"),
+            Tab(text: "Dikembalikan"),
+          ]
+        : const [
+            Tab(text: "Diminta"),
+            Tab(text: "Dipinjam"),
+            Tab(text: "Dikembalikan"),
+          ],
+
           ),
         ),
         body: TabBarView(
           controller: _tabController,
-          children: [
-            StreamBuilder<List<BorrowRequest>>(
-              stream: vm.streamRequestedList(
-                id: FirebaseAuth.instance.currentUser?.uid,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return LoadingWidget("Memuat data permintaan");
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Text('Tidak ada data permintaan.');
-                }
-
-                final requestedList = snapshot.data!;
-                return ListView.builder(
-                  itemCount: requestedList.length,
-                  itemBuilder: (context, index) {
-                    final item = requestedList[index];
-                    return buildRequestBorrowItem(item, widget.userRole, vm);
-                  },
-                );
-              },
-            ),
+          children: widget.userRole == 'admin' ?[
             StreamBuilder<List<History>>(
               stream: vm.streamBorrowList(
                 id: FirebaseAuth.instance.currentUser?.uid,
@@ -260,7 +241,7 @@ class _HistoryBorrowPageState extends State<HistoryBorrowPage>
                 } else if (snapshot.hasError) {
                   return Text('Error: ${snapshot.error}');
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Text('Tidak ada data peminjaman.');
+                  return Center(child: Text('Tidak ada data peminjaman.'),);
                 }
 
                 final borrowList = snapshot.data!;
@@ -283,7 +264,77 @@ class _HistoryBorrowPageState extends State<HistoryBorrowPage>
                 } else if (snapshot.hasError) {
                   return Text('Error: ${snapshot.error}');
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Text('Tidak ada data pengembalian.');
+                  return Center(child: Text('Tidak ada data pengembalian.'),);
+                }
+
+                final returnList = snapshot.data!;
+                return ListView.builder(
+                  itemCount: returnList.length,
+                  itemBuilder: (context, index) {
+                    final item = returnList[index];
+                    return buildHistoryItem(item, widget.userRole, vm);
+                  },
+                );
+              },
+            ),]
+: [
+            StreamBuilder<List<BorrowRequest>>(
+              stream: vm.streamRequestedList(
+                id: FirebaseAuth.instance.currentUser?.uid,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return LoadingWidget("Memuat data permintaan");
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(child: Text('Tidak ada data permintaan.'),);
+                }
+
+                final requestedList = snapshot.data!;
+                return ListView.builder(
+                  itemCount: requestedList.length,
+                  itemBuilder: (context, index) {
+                    final item = requestedList[index];
+                    return buildRequestBorrowItem(item, widget.userRole, vm);
+                  },
+                );
+              },
+            ),
+            StreamBuilder<List<History>>(
+              stream: vm.streamBorrowList(
+                id: FirebaseAuth.instance.currentUser?.uid,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return LoadingWidget("Memuat data peminjaman");
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(child: Text('Tidak ada data peminjaman.'),);
+                }
+
+                final borrowList = snapshot.data!;
+                return ListView.builder(
+                  itemCount: borrowList.length,
+                  itemBuilder: (context, index) {
+                    final item = borrowList[index];
+                    return buildHistoryItem(item, widget.userRole, vm);
+                  },
+                );
+              },
+            ),
+            StreamBuilder<List<History>>(
+              stream: vm.streamReturnList(
+                id: FirebaseAuth.instance.currentUser?.uid,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return LoadingWidget("Memuat data pengembalian");
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(child: Text('Tidak ada data pengembalian.'),);
                 }
 
                 final returnList = snapshot.data!;
