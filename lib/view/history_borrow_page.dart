@@ -1,11 +1,14 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_management_track/model/borrow_request.dart';
 import 'package:media_management_track/model/history.dart';
+import 'package:media_management_track/model/user.dart';
+import 'package:media_management_track/storage/prefs.dart';
 import 'package:media_management_track/view/widget/loading_widget.dart';
 import 'package:media_management_track/viewmodel/history_viewmodel.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HistoryBorrowPage extends StatefulWidget {
   final String userRole;
@@ -17,29 +20,39 @@ class HistoryBorrowPage extends StatefulWidget {
 
 class _HistoryBorrowPageState extends State<HistoryBorrowPage>
     with TickerProviderStateMixin {
-      late TabController _tabController;
-late int _tabLength;
+  late TabController _tabController;
+  late int _tabLength;
+
+  late Prefs _prefs;
+  User? _currentUser;
 
   late HistoryViewmodel vm;
 
   @override
   void initState() {
     super.initState();
-    final user = FirebaseAuth.instance.currentUser;
+    final user = auth.FirebaseAuth.instance.currentUser;
     if (user == null) {
       context.go('/login');
     }
 
     _tabLength = widget.userRole == 'admin' ? 2 : 3;
-  _tabController = TabController(length: _tabLength, vsync: this);
-
+    _tabController = TabController(length: _tabLength, vsync: this);
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    vm = Provider.of<HistoryViewmodel>(context, listen: false);
-  }
+void didChangeDependencies() {
+  super.didChangeDependencies();
+  vm = Provider.of<HistoryViewmodel>(context, listen: false);
+
+  SharedPreferences.getInstance().then((sp) {
+    _prefs = Prefs(sp);
+    User? user = _prefs.getUser();
+    setState(() {
+      _currentUser = user;
+    });
+  });
+}
 
   Future<Map<String, String>> getNames(String userId, String schoolId) async {
     final userName = await vm.getUserName(userId);
@@ -95,20 +108,14 @@ late int _tabLength;
                     (userRole == 'trainer' && history.status == 'borrow')
                         ? ElevatedButton(
                           onPressed: () async {
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder:
-                                  (_) => const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                            );
+                            
 
                             bool success = await viewModel.returnItem(
                               history.id,
                             );
-
-                            Navigator.of(context).pop(); // Tutup loading dialog
+                            if(!mounted){
+                              return;
+                            }
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -128,7 +135,7 @@ late int _tabLength;
           },
         );
       },
-    );
+    ); 
   }
 
   Widget buildRequestBorrowItem(
@@ -215,139 +222,163 @@ late int _tabLength;
         appBar: AppBar(
           bottom: TabBar(
             controller: _tabController,
-            tabs: widget.userRole == 'admin'
-        ? const [
-            Tab(text: "Dipinjam"),
-            Tab(text: "Dikembalikan"),
-          ]
-        : const [
-            Tab(text: "Diminta"),
-            Tab(text: "Dipinjam"),
-            Tab(text: "Dikembalikan"),
-          ],
-
+            tabs:
+                widget.userRole == 'admin'
+                    ? const [Tab(text: "Dipinjam"), Tab(text: "Dikembalikan")]
+                    : const [
+                      Tab(text: "Diminta"),
+                      Tab(text: "Dipinjam"),
+                      Tab(text: "Dikembalikan"),
+                    ],
           ),
         ),
         body: TabBarView(
           controller: _tabController,
-          children: widget.userRole == 'admin' ?[
-            StreamBuilder<List<History>>(
-              stream: vm.streamBorrowList(
-                id: FirebaseAuth.instance.currentUser?.uid,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return LoadingWidget("Memuat data peminjaman");
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text('Tidak ada data peminjaman.'),);
-                }
+          children:
+              widget.userRole == 'admin'
+                  ? [
+                    StreamBuilder<List<History>>(
+                      stream: vm.streamBorrowList(
+                        id: auth.FirebaseAuth.instance.currentUser?.uid,userRole: _currentUser!.role
+                      ),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return LoadingWidget("Memuat data peminjaman");
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return Center(
+                            child: Text('Tidak ada data peminjaman.'),
+                          );
+                        }
 
-                final borrowList = snapshot.data!;
-                return ListView.builder(
-                  itemCount: borrowList.length,
-                  itemBuilder: (context, index) {
-                    final item = borrowList[index];
-                    return buildHistoryItem(item, widget.userRole, vm);
-                  },
-                );
-              },
-            ),
-            StreamBuilder<List<History>>(
-              stream: vm.streamReturnList(
-                id: FirebaseAuth.instance.currentUser?.uid,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return LoadingWidget("Memuat data pengembalian");
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text('Tidak ada data pengembalian.'),);
-                }
+                        final borrowList = snapshot.data!;
+                        return ListView.builder(
+                          itemCount: borrowList.length,
+                          itemBuilder: (context, index) {
+                            final item = borrowList[index];
+                            return buildHistoryItem(item, widget.userRole, vm);
+                          },
+                        );
+                      },
+                    ),
+                    StreamBuilder<List<History>>(
+                      stream: vm.streamReturnList(
+                        id: auth.FirebaseAuth.instance.currentUser?.uid,userRole: _currentUser!.role
+                      ),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return LoadingWidget("Memuat data pengembalian");
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return Center(
+                            child: Text('Tidak ada data pengembalian.'),
+                          );
+                        }
 
-                final returnList = snapshot.data!;
-                return ListView.builder(
-                  itemCount: returnList.length,
-                  itemBuilder: (context, index) {
-                    final item = returnList[index];
-                    return buildHistoryItem(item, widget.userRole, vm);
-                  },
-                );
-              },
-            ),]
-: [
-            StreamBuilder<List<BorrowRequest>>(
-              stream: vm.streamRequestedList(
-                id: FirebaseAuth.instance.currentUser?.uid,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return LoadingWidget("Memuat data permintaan");
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text('Tidak ada data permintaan.'),);
-                }
+                        final returnList = snapshot.data!;
+                        return ListView.builder(
+                          itemCount: returnList.length,
+                          itemBuilder: (context, index) {
+                            final item = returnList[index];
+                            return buildHistoryItem(item, widget.userRole, vm);
+                          },
+                        );
+                      },
+                    ),
+                  ]
+                  : [
+                    StreamBuilder<List<BorrowRequest>>(
+                      stream: vm.streamRequestedList(
+                        id: auth.FirebaseAuth.instance.currentUser?.uid,
+                      ),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return LoadingWidget("Memuat data permintaan");
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return Center(
+                            child: Text('Tidak ada data permintaan.'),
+                          );
+                        }
 
-                final requestedList = snapshot.data!;
-                return ListView.builder(
-                  itemCount: requestedList.length,
-                  itemBuilder: (context, index) {
-                    final item = requestedList[index];
-                    return buildRequestBorrowItem(item, widget.userRole, vm);
-                  },
-                );
-              },
-            ),
-            StreamBuilder<List<History>>(
-              stream: vm.streamBorrowList(
-                id: FirebaseAuth.instance.currentUser?.uid,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return LoadingWidget("Memuat data peminjaman");
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text('Tidak ada data peminjaman.'),);
-                }
+                        final requestedList = snapshot.data!;
+                        return ListView.builder(
+                          itemCount: requestedList.length,
+                          itemBuilder: (context, index) {
+                            final item = requestedList[index];
+                            return buildRequestBorrowItem(
+                              item,
+                              widget.userRole,
+                              vm,
+                            );
+                          },
+                        );
+                      },
+                    ),
+                    StreamBuilder<List<History>>(
+                      stream: vm.streamBorrowList(
+                        id: auth.FirebaseAuth.instance.currentUser?.uid,userRole: _currentUser!.role
+                      ),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return LoadingWidget("Memuat data peminjaman");
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return Center(
+                            child: Text('Tidak ada data peminjaman.'),
+                          );
+                        }
 
-                final borrowList = snapshot.data!;
-                return ListView.builder(
-                  itemCount: borrowList.length,
-                  itemBuilder: (context, index) {
-                    final item = borrowList[index];
-                    return buildHistoryItem(item, widget.userRole, vm);
-                  },
-                );
-              },
-            ),
-            StreamBuilder<List<History>>(
-              stream: vm.streamReturnList(
-                id: FirebaseAuth.instance.currentUser?.uid,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return LoadingWidget("Memuat data pengembalian");
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text('Tidak ada data pengembalian.'),);
-                }
+                        final borrowList = snapshot.data!;
+                        return ListView.builder(
+                          itemCount: borrowList.length,
+                          itemBuilder: (context, index) {
+                            final item = borrowList[index];
+                            return buildHistoryItem(item, widget.userRole, vm);
+                          },
+                        );
+                      },
+                    ),
+                    StreamBuilder<List<History>>(
+                      stream: vm.streamReturnList(
+                        id: auth.FirebaseAuth.instance.currentUser?.uid,userRole: _currentUser!.role
+                      ),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return LoadingWidget("Memuat data pengembalian");
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return Center(
+                            child: Text('Tidak ada data pengembalian.'),
+                          );
+                        }
 
-                final returnList = snapshot.data!;
-                return ListView.builder(
-                  itemCount: returnList.length,
-                  itemBuilder: (context, index) {
-                    final item = returnList[index];
-                    return buildHistoryItem(item, widget.userRole, vm);
-                  },
-                );
-              },
-            ),
-          ],
+                        final returnList = snapshot.data!;
+                        return ListView.builder(
+                          itemCount: returnList.length,
+                          itemBuilder: (context, index) {
+                            final item = returnList[index];
+                            return buildHistoryItem(item, widget.userRole, vm);
+                          },
+                        );
+                      },
+                    ),
+                  ],
         ),
       ),
     );

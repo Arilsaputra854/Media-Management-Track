@@ -12,7 +12,7 @@ class SplashScreenPage extends StatelessWidget {
       builder: (context, snapshot) {
         // Tampilkan splash screen sementara
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: Text("Logo")));
+          return Scaffold(body: Center(child: Image.asset("assets/logo_racer.jpeg")));
         }
 
         Future.delayed(const Duration(seconds: 2), () {
@@ -24,7 +24,7 @@ class SplashScreenPage extends StatelessWidget {
         });
 
         // Tetap tampilkan splash screen selama 2 detik
-        return const Scaffold(body: Center(child: Text("Logo")));
+          return Scaffold(body: Center(child: Image.asset("assets/logo_racer.jpeg")));
       },
     );
   }

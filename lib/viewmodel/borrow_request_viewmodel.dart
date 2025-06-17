@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:media_management_track/model/borrow_request.dart';
 
 class BorrowRequestViewmodel extends ChangeNotifier {
+  final FirebaseFirestore firestore;
+
+  BorrowRequestViewmodel({FirebaseFirestore? firestore})
+      : firestore = firestore ?? FirebaseFirestore.instance;
+
   final _db = FirebaseFirestore.instance;
   bool _isLoading = false;
   List<BorrowRequest> _requests = [];
@@ -95,7 +100,6 @@ Future<void> approveRequest(BorrowRequest request, BuildContext context) async {
         'user_id': request.userId,
         'school_id': request.schoolId,
         'media_id': request.mediaId,
-        'media_name': request.mediaName ?? 'Tanpa Nama',
         'pcs': request.pcs,
         'status': 'borrow',
         'borrow_at': now,

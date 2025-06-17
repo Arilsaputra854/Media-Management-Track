@@ -21,8 +21,9 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void didChangeDependencies() {
-    auth.User? user = auth.FirebaseAuth.instance.currentUser;
+    super.didChangeDependencies();
 
+    auth.User? user = auth.FirebaseAuth.instance.currentUser;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (user != null) {
         context.go('/dashboard');
@@ -30,7 +31,6 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     vm = context.watch<LoginViewmodel>();
-    super.didChangeDependencies();
   }
 
   @override
@@ -38,50 +38,81 @@ class _LoginPageState extends State<LoginPage> {
     return Stack(
       children: [
         Scaffold(
+          backgroundColor: Colors.grey[100],
           body: Center(
-            child: Container(
-              width: 500,
-              height: 300,
-              child: Card(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TextField(
-                        controller: emailController,
-                        decoration: InputDecoration(labelText: "Email"),
-                      ),
-                      TextField(
-                        controller: passwordController,
-                        decoration: InputDecoration(labelText: "Password"),
-                        obscureText: true,
-                      ),
-                      SizedBox(height: 20),
-                      InkWell(
-                        child: Text("Daftar"),
-                        onTap: () {
-                          context.go("/register");
-                        },
-                      ),
-                      ElevatedButton(
-                        onPressed: () async {
-                          bool isSuccess = await vm.login(
-                            emailController.text,
-                            passwordController.text,
-                          );
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 400),
+                child: Card(
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "Login",
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        TextField(
+                          controller: emailController,
+                          decoration: InputDecoration(
+                            labelText: "Email",
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: passwordController,
+                          decoration: InputDecoration(
+                            labelText: "Password",
+                            border: OutlineInputBorder(),
+                          ),
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              bool isSuccess = await vm.login(
+                                emailController.text,
+                                passwordController.text,
+                              );
 
-                          if (isSuccess) {
-                            context.go('/dashboard');
-                          } else {
-                            if (vm.errorMsg != null) {
-                              showToast(context, vm.errorMsg!);
-                            }
-                          }
-                        },
-                        child: Text("Login"),
-                      ),
-                    ],
+                              if (isSuccess) {
+                                context.go('/dashboard');
+                              } else {
+                                if (vm.errorMsg != null) {
+                                  showToast(context, vm.errorMsg!);
+                                }
+                              }
+                            },
+                            child: Text("Login"),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        GestureDetector(
+                          onTap: () => context.go("/register"),
+                          child: Text(
+                            "Belum punya akun? Daftar di sini",
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -42,7 +42,7 @@ class HistoryViewmodel extends ChangeNotifier {
         });
   }
 
-  Stream<List<History>> streamBorrowList({required String? id, String? userRole}) {
+  Stream<List<History>> streamBorrowList({required String? id,required String userRole}) {
   if (userRole == 'admin') {
     return firestore
         .collection('history')
@@ -64,24 +64,30 @@ class HistoryViewmodel extends ChangeNotifier {
 }
 
 
-  Stream<List<History>> streamReturnList({String? id}) {
-    Query query = firestore
+  Stream<List<History>> streamReturnList({
+  required String? id,
+  required String userRole,
+}) {
+  if (userRole == 'admin') {
+    return firestore
         .collection('history')
-        .where('status', isEqualTo: 'return');
-
-    if (id != null && id.isNotEmpty) {
-      query = query.where('user_id', isEqualTo: id);
-    }
-
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs
-          .map(
-            (doc) =>
-                History.fromFirestore(doc),
-          )
-          .toList();
-    });
+        .where('status', isEqualTo: 'return')
+        .orderBy('return_at', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => History.fromFirestore(doc)).toList());
+  } else {
+    return firestore
+        .collection('history')
+        .where('user_id', isEqualTo: id)
+        .where('status', isEqualTo: 'return')
+        .orderBy('return_at', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => History.fromFirestore(doc)).toList());
   }
+}
+
 
   Future<bool> returnItem(String historyId) async {
     _loading = true;
