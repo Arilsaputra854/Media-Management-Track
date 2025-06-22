@@ -24,6 +24,8 @@ class _MediaPageState extends State<MediaPage> {
 
   @override
   Widget build(BuildContext context) {
+
+  
     return Consumer<MediaViewmodel>(
       builder: (context, vm, _) {
         return Scaffold(
@@ -68,7 +70,6 @@ class _MediaPageState extends State<MediaPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text("Total : ${media.items.length}"),
-                              Text("Tersedia : -"),
                             ],
                           ),
                           trailing: const Icon(
@@ -88,8 +89,6 @@ class _MediaPageState extends State<MediaPage> {
   }
 
   void showDialogAddMedia(BuildContext context) {
-    final TextEditingController countAllController = TextEditingController();
-    final TextEditingController imageUrlController = TextEditingController();
     final TextEditingController nameController = TextEditingController();
 
     showDialog(
@@ -105,15 +104,6 @@ class _MediaPageState extends State<MediaPage> {
                   controller: nameController,
                   decoration: InputDecoration(labelText: "Nama Media"),
                 ),
-                TextField(
-                  controller: countAllController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: "Total Media"),
-                ),
-                TextField(
-                  controller: imageUrlController,
-                  decoration: InputDecoration(labelText: "Image URL"),
-                ),
               ],
             ),
           ),
@@ -128,9 +118,7 @@ class _MediaPageState extends State<MediaPage> {
               child: Text("Simpan"),
               onPressed: () async {
                 // Validasi sederhana
-                if (countAllController.text.isEmpty ||
-                    imageUrlController.text.isEmpty ||
-                    nameController.text.isEmpty) {
+                if (nameController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("Semua field wajib diisi.")),
                   );

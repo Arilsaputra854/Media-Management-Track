@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_management_track/model/school.dart';
+import 'package:media_management_track/view/widget/loading_widget.dart';
 import 'package:media_management_track/viewmodel/school_viewmodel.dart';
 import 'package:provider/provider.dart';
 
@@ -12,166 +13,168 @@ class SchoolPage extends StatefulWidget {
 }
 
 class _SchoolPageState extends State<SchoolPage> {
-  late SchoolViewmodel vm;
+  late Future<void> _initFuture;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    vm = Provider.of<SchoolViewmodel>(context, listen: false);
-    vm.init();
+  void initState() {
+    super.initState();
+    final vm = Provider.of<SchoolViewmodel>(context, listen: false);
+    _initFuture = vm.init();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SchoolViewmodel>(
-      builder: (context, vm, child) {
-        return Scaffold(
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _addSchoolDialog(),
-            child: Icon(Icons.add),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Daftar Sekolah'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              setState(() {
+                final vm = Provider.of<SchoolViewmodel>(context, listen: false);
+                _initFuture = vm.init();
+              });
+            },
           ),
-          body: Stack(
-            children: [
-              vm.schools.isEmpty
-                  ? const Center(
-                    child: Text("Belum ada sekolah yang terdaftar."),
-                  )
-                  : ListView.builder(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: vm.schools.length,
-                    itemBuilder: (context, index) {
-                      final school = vm.schools[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 3,
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            child: Text(
-                              school.name.isNotEmpty
-                                  ? school.name[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            backgroundColor: Colors.blueAccent,
-                            foregroundColor: Colors.white,
-                          ),
-                          title: Text(
-                            school.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addSchoolDialog,
+        child: const Icon(Icons.add),
+      ),
+      body: FutureBuilder<void>(
+        future: _initFuture,
+        builder: (context, snapshot) {
+          final vm = Provider.of<SchoolViewmodel>(context);
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return  LoadingWidget("Memuat data sekolah");
+          }
 
-                          trailing: PopupMenuButton<String>(
-                            onSelected: (value) {
-                              if (value == 'edit') {
-                                _editSchoolDialog(school);
-                              } else if (value == 'delete') {
-                                vm.removeSchool(school);
-                              }
-                            },
-                            itemBuilder:
-                                (context) => [
-                                  const PopupMenuItem(
-                                    value: 'edit',
-                                    child: Text('Edit'),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text('Hapus'),
-                                  ),
-                                ],
-                          ),
+          if (snapshot.hasError) {
+            return Center(child: Text("Gagal memuat sekolah: ${snapshot.error}"));
+          }
 
-                          onTap: () {
-                            _editSchoolDialog(school);
-                          },
-                        ),
-                      );
-                    },
+          if (vm.schools.isEmpty) {
+            return const Center(child: Text("Belum ada sekolah yang terdaftar."));
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: vm.schools.length,
+            itemBuilder: (context, index) {
+              final school = vm.schools[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 3,
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    child: Text(
+                      school.name.isNotEmpty
+                          ? school.name[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
-              if (vm.isLoading) Center(child: CircularProgressIndicator()),
-            ],
-          ),
-        );
-      },
+                  title: Text(
+                    school.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _editSchoolDialog(school);
+                      } else if (value == 'delete') {
+                        vm.removeSchool(school);
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      PopupMenuItem(value: 'delete', child: Text('Hapus')),
+                    ],
+                  ),
+                  onTap: () => _editSchoolDialog(school),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
   void _editSchoolDialog(School school) {
-    final TextEditingController nameController = TextEditingController(
-      text: school.name,
-    );
+    final nameController = TextEditingController(text: school.name);
+    final vm = Provider.of<SchoolViewmodel>(context, listen: false);
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Sekolah'),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(
-              labelText: 'Nama Sekolah',
-              border: OutlineInputBorder(),
-            ),
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Sekolah'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Nama Sekolah',
+            border: OutlineInputBorder(),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newName = nameController.text.trim();
-                if (newName.isNotEmpty) {
-                  vm.updateSchool(School(newName, school.id));
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Edit'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newName = nameController.text.trim();
+              if (newName.isNotEmpty) {
+                vm.updateSchool(School(newName, school.id));
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Edit'),
+          ),
+        ],
+      ),
     );
   }
 
   void _addSchoolDialog() {
-    final TextEditingController nameController = TextEditingController();
+    final nameController = TextEditingController();
+    final vm = Provider.of<SchoolViewmodel>(context, listen: false);
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Tambah Sekolah'),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(
-              labelText: 'Nama Sekolah',
-              border: OutlineInputBorder(),
-            ),
+      builder: (context) => AlertDialog(
+        title: const Text('Tambah Sekolah'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Nama Sekolah',
+            border: OutlineInputBorder(),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newName = nameController.text.trim();
-                if (newName.isNotEmpty) {
-                  vm.addSchool(newName);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Tambah'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newName = nameController.text.trim();
+              if (newName.isNotEmpty) {
+                vm.addSchool(newName);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Tambah'),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -12,25 +12,24 @@ class TrainerViewmodel extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  Future<void> fetchUsers() async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      QuerySnapshot snapshot =
-          await FirebaseFirestore.instance.collection('users').get();
+  Future<List<User>> fetchUsers() async {
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .get()
+        .timeout(const Duration(seconds: 10));
 
-      List<User> usersSnapshot =
-          snapshot.docs.map((doc) {
-            return User.fromJson(doc.data() as Map<String, dynamic>);
-          }).toList();
+    final users = snapshot.docs.map((doc) {
+      return User.fromJson(doc.data() as Map<String, dynamic>);
+    }).toList();
 
-      _users = usersSnapshot.where((user) => user.role == 'trainer' && user.status == 'accepted').toList();
-      notifyListeners();
-    } catch (e) {
-      log.e(e.toString());
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    return users
+        .where((user) => user.role == 'trainer' && user.status == 'accepted')
+        .toList();
+  } catch (e) {
+    log.e(e.toString());
+    rethrow;
   }
+}
+
 }

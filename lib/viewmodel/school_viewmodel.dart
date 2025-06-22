@@ -53,7 +53,8 @@ class SchoolViewmodel extends ChangeNotifier {
       // Tambahkan ke Firestore
       await _firestore.collection('school').add({'name': schoolName});
 
-      _fetchSchools();
+      await _fetchSchools();
+
       log.i("Sekolah ditambahkan: ${schoolName}");
     } catch (e) {
       log.e("Gagal menambahkan sekolah: $e");
@@ -96,7 +97,8 @@ class SchoolViewmodel extends ChangeNotifier {
       await _firestore.collection('school').doc(school.id).update({
         'name': school.name,
       });
-      _fetchSchools();
+      await _fetchSchools();
+
 
       log.i("Sekolah berhasil diupdate: ${school.name}");
     } catch (e) {
