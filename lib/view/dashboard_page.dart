@@ -6,7 +6,9 @@ import 'package:media_management_track/view/borrow_request_page.dart';
 import 'package:media_management_track/view/history_borrow_page.dart';
 import 'package:media_management_track/view/media_page.dart';
 import 'package:media_management_track/view/request_trainer_page.dart';
+import 'package:media_management_track/view/return_media_page.dart';
 import 'package:media_management_track/view/school_page.dart';
+import 'package:media_management_track/view/school_trainer_page.dart';
 import 'package:media_management_track/view/trainer_page.dart';
 import 'package:media_management_track/viewmodel/dashboard_viewmodel.dart';
 import 'package:provider/provider.dart';
@@ -122,6 +124,24 @@ class _DashboardPageState extends State<DashboardPage> {
                     title: const Text('Sekolah'),
                     onTap: () {
                       vm.updatePage(const SchoolPage(), "Kelola Sekolah", "school");
+                      Navigator.pop(context);
+                    },
+                  ),
+                  if (vm.currentUser?.role == "admin")
+                  ListTile(
+                    leading: const Icon(Icons.school),
+                    title: const Text('Institusi'),
+                    onTap: () {
+                      vm.updatePage(const SchoolTrainerPage(), "Kelola Institusi", "institution");
+                      Navigator.pop(context);
+                    },
+                  ),
+                  if (vm.currentUser?.role == "admin")
+                  ListTile(
+                    leading: const Icon(Icons.school),
+                    title: const Text('Pengembalian Sarana'),
+                    onTap: () {
+                      vm.updatePage(const ReturnMediaPage(), "Pengembalian Sarana", "return_sarana");
                       Navigator.pop(context);
                     },
                   ),

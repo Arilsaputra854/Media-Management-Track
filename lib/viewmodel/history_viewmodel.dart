@@ -89,28 +89,6 @@ class HistoryViewmodel extends ChangeNotifier {
 }
 
 
-  Future<bool> returnItem(String historyId) async {
-    _loading = true;
-    _errorMsg = null;
-    notifyListeners();
-
-    try {
-      await firestore.collection('history').doc(historyId).update({
-        'status': 'return',
-        'return_at': FieldValue.serverTimestamp(),
-      });
-
-      _loading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      logger.e("Error returnItem: $e");
-      _errorMsg = e.toString();
-      _loading = false;
-      notifyListeners();
-      return false;
-    }
-  }
 
   Future<String> getUserName(String userId) async {
     final doc = await firestore.collection('users').doc(userId).get();

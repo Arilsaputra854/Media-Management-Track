@@ -12,6 +12,8 @@ import 'package:media_management_track/view/history_borrow_page.dart';
 import 'package:media_management_track/view/login_page.dart';
 import 'package:media_management_track/view/media_detail_page.dart';
 import 'package:media_management_track/view/register_page.dart';
+import 'package:media_management_track/view/school_page.dart';
+import 'package:media_management_track/view/school_trainer_page.dart';
 import 'package:media_management_track/view/splash_screen_page.dart';
 import 'package:media_management_track/view/trainer_detail_page.dart';
 import 'package:media_management_track/viewmodel/borrow_media_viewmodel.dart';
@@ -23,6 +25,7 @@ import 'package:media_management_track/viewmodel/media_detail_viewmodel.dart';
 import 'package:media_management_track/viewmodel/media_viewmodel.dart';
 import 'package:media_management_track/viewmodel/register_viewmodel.dart';
 import 'package:media_management_track/viewmodel/request_trainer_viewmodel.dart';
+import 'package:media_management_track/viewmodel/school_trainer_viewmodel.dart';
 import 'package:media_management_track/viewmodel/school_viewmodel.dart';
 import 'package:media_management_track/viewmodel/trainer_viewmodel.dart';
 import 'package:provider/provider.dart';
@@ -49,6 +52,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => BorrowRequestViewmodel()),
         ChangeNotifierProvider(create: (_) => DetailMediaViewModel()),
         ChangeNotifierProvider(create: (_) => RequestTrainerViewmodel()),
+        ChangeNotifierProvider(create: (_) => SchoolTrainerViewmodel()),
       ],
       child: MyApp(),
     ),
@@ -62,9 +66,10 @@ final GoRouter _router = GoRouter(
     GoRoute(path: '/register', builder: (context, state) => RegisterPage()),
     GoRoute(path: '/login', builder: (context, state) => LoginPage()),
     GoRoute(path: '/borrow', builder: (context, state) => BorrowMediaPage()),
-    GoRoute(path: '/schools', builder: (context, state) => BorrowMediaPage()),
+    GoRoute(path: '/schools', builder: (context, state) => SchoolPage()),
     GoRoute(path: '/request-become-trainer', builder: (context, state) => BorrowMediaPage()),
     GoRoute(path: '/request-borrow-media', builder: (context, state) => BorrowRequestPage()),
+        GoRoute(path: '/request-borrow-media', builder: (context, state) => SchoolTrainerPage()),
     GoRoute(
       path: '/trainer',
       builder: (context, state) {

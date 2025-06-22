@@ -43,6 +43,7 @@ dependencies:
   go_router:
   mockito:
   build_runner:
+  flutter_web_qrcode_scanner:
 
 
   # The following adds the Cupertino Icons font to your application.

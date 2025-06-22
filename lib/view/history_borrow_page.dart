@@ -104,32 +104,7 @@ void didChangeDependencies() {
                     Text("Jam Kembali: $returnAt"),
                   ],
                 ),
-                trailing:
-                    (userRole == 'trainer' && history.status == 'borrow')
-                        ? ElevatedButton(
-                          onPressed: () async {
-                            
-
-                            bool success = await viewModel.returnItem(
-                              history.id,
-                            );
-                            if(!mounted){
-                              return;
-                            }
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  success
-                                      ? 'Item berhasil dikembalikan'
-                                      : 'Gagal mengembalikan item: ${viewModel.errorMsg}',
-                                ),
-                              ),
-                            );
-                          },
-                          child: const Text('Kembalikan'),
-                        )
-                        : null,
+                
               ),
             );
           },
